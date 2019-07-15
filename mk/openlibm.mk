@@ -20,19 +20,19 @@ $(BUILD_DIR)/openlibm/%.o: $(SOURCE_ROOT)/openlibm/src/%.c
 
 # DIST RULES
 
-DIST_OPENLIBM := $(LIBTRANSISTOR_HOME)/lib/libm.a $(LIBTRANSISTOR_HOME)/openlibm_flag \
-	$(addprefix $(LIBTRANSISTOR_HOME)/include/,$(openlibm_HEADERS))
+DIST_OPENLIBM := $(BIOSPHERE_HOME)/lib/libm.a $(BIOSPHERE_HOME)/openlibm_flag \
+	$(addprefix $(BIOSPHERE_HOME)/include/,$(openlibm_HEADERS))
 
 # this is terrible.
 # force newlib to install before us
-$(DIST_OPENLIBM): $(LIBTRANSISTOR_HOME)/lib/libc.a $(BUILD_DIR)/openlibm/libm.a
+$(DIST_OPENLIBM): $(BIOSPHERE_HOME)/lib/libc.a $(BUILD_DIR)/openlibm/libm.a
 	install -d $(@D)
-	install $(BUILD_DIR)/openlibm/libm.a $(LIBTRANSISTOR_HOME)/lib/libm.a
-	install $(addprefix $(SOURCE_ROOT)/openlibm/include/,$(openlibm_HEADERS)) $(LIBTRANSISTOR_HOME)/include/
-	touch $(LIBTRANSISTOR_HOME)/openlibm_flag
-	touch $(LIBTRANSISTOR_HOME)/lib/libm.a
+	install $(BUILD_DIR)/openlibm/libm.a $(BIOSPHERE_HOME)/lib/libm.a
+	install $(addprefix $(SOURCE_ROOT)/openlibm/include/,$(openlibm_HEADERS)) $(BIOSPHERE_HOME)/include/
+	touch $(BIOSPHERE_HOME)/openlibm_flag
+	touch $(BIOSPHERE_HOME)/lib/libm.a
 
-$(LIBTRANSISTOR_HOME)/include/%: $(SOURCE_ROOT)/openlibm/include/%
+$(BIOSPHERE_HOME)/include/%: $(SOURCE_ROOT)/openlibm/include/%
 	install -d $(@D)
 	install $< $@
 

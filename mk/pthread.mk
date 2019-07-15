@@ -26,22 +26,22 @@ $(pthread_TARGET): $(pthread_OBJECT_FILES)
 
 # DIST RULES
 
-DIST_PTHREAD_HEADERS := $(addprefix $(LIBTRANSISTOR_HOME)/include/,$(pthread_HEADERS))
-DIST_PTHREAD := $(LIBTRANSISTOR_HOME)/lib/libpthread.a
+DIST_PTHREAD_HEADERS := $(addprefix $(BIOSPHERE_HOME)/include/,$(pthread_HEADERS))
+DIST_PTHREAD := $(BIOSPHERE_HOME)/lib/libpthread.a
 
-$(LIBTRANSISTOR_HOME)/lib/libpthread.a: $(pthread_TARGET)
+$(BIOSPHERE_HOME)/lib/libpthread.a: $(pthread_TARGET)
 	install -d $(@D)
 	install $< $@
 
-$(LIBTRANSISTOR_HOME)/include/%: $(SOURCE_ROOT)/pthread/include/%
+$(BIOSPHERE_HOME)/include/%: $(SOURCE_ROOT)/pthread/include/%
 	install -d $(@D)
 	install $< $@
 
-$(LIBTRANSISTOR_HOME)/include/phal_types.h: $(SOURCE_ROOT)/pthread/sys/switch/phal_types.h
+$(BIOSPHERE_HOME)/include/phal_types.h: $(SOURCE_ROOT)/pthread/sys/switch/phal_types.h
 	install -d $(@D)
 	install $< $@
 
-$(LIBTRANSISTOR_HOME)/include/phal.h: $(SOURCE_ROOT)/pthread/phal.h
+$(BIOSPHERE_HOME)/include/phal.h: $(SOURCE_ROOT)/pthread/phal.h
 	install -d $(@D)
 	install $< $@
 

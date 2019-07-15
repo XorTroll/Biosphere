@@ -11,7 +11,7 @@ $(BUILD_DIR)/xz/Makefile: $(SOURCE_ROOT)/xz/configure
 		"CC=$(CC)" "AR=$(AR)" \
 		"RANLIB=$(RANLIB)" \
 		--host=aarch64-none-none \
-		--prefix=$(LIBTRANSISTOR_HOME) \
+		--prefix=$(BIOSPHERE_HOME) \
 		--disable-xz \
 		--disable-xzdec \
 		--disable-lzmadec \
