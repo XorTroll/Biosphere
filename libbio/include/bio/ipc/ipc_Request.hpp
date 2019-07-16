@@ -186,9 +186,9 @@ namespace bio::ipc
     struct OutSession : RequestArgument
     {
         u32 idx;
-        Session &s;
+        std::shared_ptr<Session> &s;
 
-        OutSession(Session &session) : s(session), idx(OIndex)
+        OutSession(std::shared_ptr<Session> &session) : s(session), idx(OIndex)
         {
         }
 
@@ -197,7 +197,11 @@ namespace bio::ipc
             switch(part)
             {
                 case 4:
-                    if(idx < data.out_hs_size) s = Session(data.out_hs[idx]);
+                    if(idx < data.out_hs_size)
+                    {
+                        KObject handle(data.out_hs[idx]);
+                        s = std::make_shared<Session>(handle);
+                    }
                     break;
             }
         }

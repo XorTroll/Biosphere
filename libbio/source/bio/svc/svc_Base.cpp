@@ -129,11 +129,6 @@ namespace bio::svc
         return __bio_svc_SignalEvent(event);
     }
     
-    Result CreateTransferMemory(Out<u32> handle, void *addr, u64 size, u32 permission)
-    {
-        return __bio_svc_CreateTransferMemory(handle.AsPtr(), addr, size, permission);
-    }
-    
     Result SendSyncRequest(u32 handle)
     {
         return __bio_svc_SendSyncRequest(handle);
@@ -167,5 +162,40 @@ namespace bio::svc
     Result GetInfo(u32 first_id, u32 second_id, u32 handle, Out<u64> info)
     {
         return __bio_svc_GetInfo(info.AsPtr(), first_id, handle, second_id);
+    }
+
+    Result QueryMemory(u64 address, Out<MemoryInfo> mem_info, Out<u32> page_info)
+    {
+        return __bio_svc_QueryMemory(mem_info.AsPtr(), page_info.AsPtr(), address);
+    }
+
+    Result CreateSharedMemory(Out<u32> handle, size_t size, u32 local_perms, u32 perms)
+    {
+        return __bio_svc_CreateSharedMemory(handle.AsPtr(), size, local_perms, perms);
+    }
+
+    Result MapSharedMemory(u32 handle, void *addr, size_t size, u32 perms)
+    {
+        return __bio_svc_MapSharedMemory(handle, addr, size, perms);
+    }
+
+    Result UnmapSharedMemory(u32 handle, void *addr, size_t size)
+    {
+        return __bio_svc_UnmapSharedMemory(handle, addr, size);
+    }
+
+    Result CreateTransferMemory(Out<u32> handle, void *addr, u64 size, u32 permission)
+    {
+        return __bio_svc_CreateTransferMemory(handle.AsPtr(), addr, size, permission);
+    }
+
+    Result MapTransferMemory(u32 handle, void *addr, size_t size, u32 perms)
+    {
+        return __bio_svc_MapSharedMemory(handle, addr, size, perms);
+    }
+
+    Result UnmapTransferMemory(u32 handle, void *addr, size_t size)
+    {
+        return __bio_svc_UnmapSharedMemory(handle, addr, size);
     }
 }

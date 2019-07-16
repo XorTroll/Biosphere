@@ -12,7 +12,7 @@ namespace bio::log
     void SetLoggingFunction(LogWriteFunction func);
 
     template<typename ...Args>
-    void LogFmt(const char *fmt, Args &...fmt_args)
+    void LogFmt(const char *fmt, Args &&...fmt_args)
     {
         setbuf(stdout, NULL);
         printf(fmt, fmt_args...);

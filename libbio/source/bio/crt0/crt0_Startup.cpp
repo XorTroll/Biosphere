@@ -17,6 +17,7 @@
 #include <bio/err/err_Assertion.hpp>
 #include <sys/stat.h>
 #include <bio/env/env_HomebrewABI.hpp>
+#include <bio/os/os_Memory.hpp>
 
 extern "C"
 {
@@ -65,6 +66,26 @@ void __bio_crt0_Relocate(bio::u8 *base, Elf64_Dyn *dyn)
 	}
 }
 
+bio::os::VirtualRegion global_AddressSpace;
+bio::os::VirtualRegion global_Regions[4];
+
+bio::Result __bio_crt0_ProcessRegion(bio::Out<bio::os::VirtualRegion> region, bio::u64 id_0, bio::u32 id_1)
+{
+	bio::u64 info;
+	auto res = bio::svc::GetInfo(id_0, 0, bio::svc::CurrentProcessPseudoHandle, info);
+	if(res.IsSuccess())
+	{
+		bio::u64 size;
+		res = bio::svc::GetInfo(id_1, 0, bio::svc::CurrentProcessPseudoHandle, size);
+		if(res.IsSuccess())
+		{
+			((bio::os::VirtualRegion&)region).start = info;
+			((bio::os::VirtualRegion&)region).end = info + size;
+		}
+	}
+	return res;
+}
+
 // If normal heap function is called this will be set to false, and since user can't change this...
 static bool _inner_UserOverrideHeap = true;
 
@@ -82,8 +103,8 @@ CRT0 entrypoint
 Startup:
 
 1 - Relocation
-2 - HBABI config processing (if NRO)
-3 - TODO - memory processing
+2 - TOFINISH - HBABI config processing (if NRO)
+3 - TOFINISH - memory processing, for virtual memory
 4 - heap processing
 5 - TODO - argv processing
 
@@ -130,6 +151,15 @@ void BIO_WEAK __bio_crt0_Startup(void *config, bio::u64 thread_handle, void *asl
 			entry++;
 		}
 	}
+
+	auto res = __bio_crt0_ProcessRegion(global_AddressSpace, 12, 13);
+	if(res.IsFailure())
+	{
+		// Handle 1.0.0!!! TODO
+	}
+	else __bio_crt0_ProcessRegion(global_Regions[static_cast<bio::u32>(bio::os::Region::Stack)], 14, 15).Assert();
+	__bio_crt0_ProcessRegion(global_Regions[static_cast<bio::u32>(bio::os::Region::Heap)], 4, 5).Assert();
+	__bio_crt0_ProcessRegion(global_Regions[static_cast<bio::u32>(bio::os::Region::NewStack)], 2, 3).Assert();
 
 	// If hbloader didn't give us a base heap, get the default one
 	auto def_heap = __bio_crt0_GetHeapSize();

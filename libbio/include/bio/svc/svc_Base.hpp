@@ -28,7 +28,6 @@ namespace bio::svc
     Result ResetSignal(u32 signal);
     Result WaitSynchronization(Out<u32> handle_index, u32 *handles, u32 num_handles, u64 timeout);
     Result SignalEvent(u32 event);
-    Result CreateTransferMemory(Out<u32> handle, void *addr, u64 size, u32 permission);
     Result SendSyncRequest(u32 handle);
     Result ConnectToNamedPort(Out<u32> session_handle, const char *name);
     Result SleepThread(i64 nanoseconds);
@@ -36,4 +35,11 @@ namespace bio::svc
     Result SetHeapSize(Out<void*> address, u64 size);
     void BIO_NORETURN ExitProcess();
     Result GetInfo(u32 first_id, u32 second_id, u32 handle, Out<u64> info);
+    Result QueryMemory(u64 address, Out<MemoryInfo> mem_info, Out<u32> page_info);
+    Result CreateSharedMemory(Out<u32> handle, size_t size, u32 local_perms, u32 perms);
+    Result MapSharedMemory(u32 handle, void *addr, size_t size, u32 perms);
+    Result UnmapSharedMemory(u32 handle, void *addr, size_t size);
+    Result CreateTransferMemory(Out<u32> handle, void *addr, u64 size, u32 permission);
+    Result MapTransferMemory(u32 handle, void *addr, size_t size, u32 perms);
+    Result UnmapTransferMemory(u32 handle, void *addr, size_t size);
 }
