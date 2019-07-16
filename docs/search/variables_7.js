@@ -1,0 +1,22 @@
+var searchData=
+[
+  ['idx',['idx',['../d8/de3/structbio_1_1ipc_1_1_out_handle.html#a750095096831b4703347a93e7e54395c',1,'bio::ipc::OutHandle::idx()'],['../d9/d75/structbio_1_1ipc_1_1_out_object_id.html#a95509c3ebed7128dccbc28a76ca44eee',1,'bio::ipc::OutObjectId::idx()'],['../db/db8/structbio_1_1ipc_1_1_out_session.html#a856904e934e3d797bd7f9357dea3d94e',1,'bio::ipc::OutSession::idx()']]],
+  ['in_5fbufs',['in_bufs',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#a22ac87c51fa7972aa9bf8d4b0efff2ef',1,'bio::ipc::RequestData']]],
+  ['in_5fbufs_5fsize',['in_bufs_size',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#a88f8f1ca167d633cadbc2bd33618fcd6',1,'bio::ipc::RequestData']]],
+  ['in_5fbufs_5fstatic',['in_bufs_static',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#a58964b1eb942107f029ac7419f9133dd',1,'bio::ipc::RequestData']]],
+  ['in_5fbufs_5fstatic_5fsize',['in_bufs_static_size',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#a7e9ed006f9c898a16f1bb597602eb344',1,'bio::ipc::RequestData']]],
+  ['in_5fcopy_5fhs',['in_copy_hs',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#af89ab713973b8cf437700e87dd6a67cf',1,'bio::ipc::RequestData']]],
+  ['in_5fcopy_5fhs_5fsize',['in_copy_hs_size',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#afd9b838d78b2706cae65224e41b0ccef',1,'bio::ipc::RequestData']]],
+  ['in_5fmove_5fhs',['in_move_hs',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#a5b816ab81dc19bdcfe3952327ef8d02b',1,'bio::ipc::RequestData']]],
+  ['in_5fmove_5fhs_5fsize',['in_move_hs_size',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#ae9b2dc8f54d1f1eb746b323b2193654e',1,'bio::ipc::RequestData']]],
+  ['in_5fobject_5fids',['in_object_ids',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#afe7f9132c267f4043f4d5bca7f5a0197',1,'bio::ipc::RequestData']]],
+  ['in_5fobject_5fids_5fsize',['in_object_ids_size',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#aa9e0af88dfeb66576f4af68b1d689118',1,'bio::ipc::RequestData']]],
+  ['in_5fpid',['in_pid',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#adef50368bd6ef24abfd2fe1d16af301e',1,'bio::ipc::RequestData']]],
+  ['in_5fraw',['in_raw',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#aac8cde5b84fa85f0c1535b92449399c9',1,'bio::ipc::RequestData']]],
+  ['in_5fraw_5fsize',['in_raw_size',['../d6/d88/structbio_1_1ipc_1_1_request_data.html#a40f2c76e41b8774f0ca9c4693bab6af5',1,'bio::ipc::RequestData']]],
+  ['index',['index',['../d4/ddc/structbio_1_1input_1_1_touch_data.html#a39872e65b2b374d1e879737bfefe7092',1,'bio::input::TouchData::index()'],['../d0/dd2/structbio_1_1ipc_1_1_buffer_info.html#a380d3c6e3e098e2ba72f1d7a4c43972e',1,'bio::ipc::BufferInfo::index()']]],
+  ['info',['info',['../d4/db1/structbio_1_1ipc_1_1_buffer.html#aec9e22cd75361b817986b437d28298b8',1,'bio::ipc::Buffer']]],
+  ['invalidobject',['InvalidObject',['../d6/d5c/namespacebio.html#ae52753ff659edf042154f7ab23fe3173',1,'bio']]],
+  ['ipc_5fref_5fcount',['ipc_ref_count',['../d8/dd0/structbio_1_1svc_1_1_memory_info.html#affdd7e94450411455302338cb843cf8d',1,'bio::svc::MemoryInfo']]],
+  ['is_5fjoycon_5fhalf',['is_joycon_half',['../da/dcf/structbio_1_1input_1_1_controller_data.html#a3bf09177969bfb2fb82760267abc1335',1,'bio::input::ControllerData']]]
+];

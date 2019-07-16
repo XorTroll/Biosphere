@@ -1,0 +1,25 @@
+var svc___base_8hpp =
+[
+    [ "MemoryInfo", "d8/dd0/structbio_1_1svc_1_1_memory_info.html", "d8/dd0/structbio_1_1svc_1_1_memory_info" ],
+    [ "SecureMonitorArgs", "d7/ddf/structbio_1_1svc_1_1_secure_monitor_args.html", "d7/ddf/structbio_1_1svc_1_1_secure_monitor_args" ],
+    [ "CloseHandle", "d8/d30/svc___base_8hpp.html#a08715833cded8d7e87cf2a9daf187091", null ],
+    [ "ConnectToNamedPort", "d8/d30/svc___base_8hpp.html#ae01b3237caa184facf20ef9ff20c3be5", null ],
+    [ "CreateEvent", "d8/d30/svc___base_8hpp.html#a0763b9d7c83469e8f03c1ebb6329431e", null ],
+    [ "CreateSharedMemory", "d8/d30/svc___base_8hpp.html#a22231ca2f9dd2c09a82325a856f030e6", null ],
+    [ "CreateTransferMemory", "d8/d30/svc___base_8hpp.html#a9b2c8e0bebeba15d534c8f05d0a45e34", null ],
+    [ "ExitProcess", "d8/d30/svc___base_8hpp.html#a7b85623cc8c34ad1607bd31de01d1a2d", null ],
+    [ "GetInfo", "d8/d30/svc___base_8hpp.html#a50d00bb251fb96a29180ea3402a1b027", null ],
+    [ "MapSharedMemory", "d8/d30/svc___base_8hpp.html#a764f88e923cfd6df6fbacdcf9c9c96af", null ],
+    [ "MapTransferMemory", "d8/d30/svc___base_8hpp.html#aaf029abe0e8f3f75956f9a7ec2c8705f", null ],
+    [ "OutputDebugString", "d8/d30/svc___base_8hpp.html#aef93c686eadc28c3d32ca3ccefd2106e", null ],
+    [ "QueryMemory", "d8/d30/svc___base_8hpp.html#a8f64c763d605bfa6ca99086474ed383c", null ],
+    [ "ResetSignal", "d8/d30/svc___base_8hpp.html#a93df24f6075eae2af68345e19fca4125", null ],
+    [ "SendSyncRequest", "d8/d30/svc___base_8hpp.html#a889f4059aecd4a0a2aef36b05679a7b7", null ],
+    [ "SetHeapSize", "d8/d30/svc___base_8hpp.html#a4637a9e009b9e5dca39abe8719d9a551", null ],
+    [ "SignalEvent", "d8/d30/svc___base_8hpp.html#a60369b66902a2913b92dcca5a4a85126", null ],
+    [ "SleepThread", "d8/d30/svc___base_8hpp.html#a3497342b4d7a8122d88dd00b9b95bc4d", null ],
+    [ "UnmapSharedMemory", "d8/d30/svc___base_8hpp.html#a8988dd92e44b08324743bd78192fc810", null ],
+    [ "UnmapTransferMemory", "d8/d30/svc___base_8hpp.html#a3f56af1a490531e9eafadf02001fffe6", null ],
+    [ "WaitSynchronization", "d8/d30/svc___base_8hpp.html#a0797b63b159c5963986c9e9af8a94f36", null ],
+    [ "CurrentProcessPseudoHandle", "d8/d30/svc___base_8hpp.html#ae8edff7b0bf9fa254d5951f74f06f131", null ]
+];

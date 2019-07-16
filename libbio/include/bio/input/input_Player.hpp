@@ -22,7 +22,8 @@ namespace bio::input
 
     Result Initialize(u64 aruid);
     bool IsInitialized();
+    std::shared_ptr<hid::Service> &GetHidSession();
     InputMemory *GetInputMemory();
     std::shared_ptr<Player> GetPlayer(Controller controller);
-    std::shared_ptr<Player> GetMainPlayer();
+    std::shared_ptr<Player> GetMainPlayer(); // Get handheld/player1 depending on which one is the current state
 }

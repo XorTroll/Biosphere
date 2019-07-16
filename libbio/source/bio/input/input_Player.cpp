@@ -94,6 +94,11 @@ namespace bio::input
         return _inner_Initialized;
     }
 
+    std::shared_ptr<hid::Service> &GetHidSession()
+    {
+        return _inner_HidSession;
+    }
+
     InputMemory *GetInputMemory()
     {
         return (InputMemory*)_inner_HidSharedMem->GetAddress();
