@@ -32,4 +32,5 @@ namespace bio::svc
     Result SleepThread(i64 nanoseconds);
     Result OutputDebugString(char *str, u64 size);
     Result SetHeapSize(Out<void*> address, u64 size);
+    void BIO_NORETURN ExitProcess();
 }

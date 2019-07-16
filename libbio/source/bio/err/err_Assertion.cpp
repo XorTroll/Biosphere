@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstring>
 
-bio::err::AssertionFunction global_Assertion = bio::err::FatalAssertionFunction;
+bio::err::AssertionFunction global_Assertion = bio::err::SvcOutputAssertionFunction;
 
 namespace bio::err
 {
@@ -34,8 +34,10 @@ namespace bio::err
 
     void SvcOutputAssertionFunction(Result res)
     {
-        char out[0x100];
-        sprintf(out, "Result assert: 0x%llX", res);
-        svc::OutputDebugString(out, strlen(out));
+        /*
+        char out[0x100] = {0};
+        sprintf(out, "Result assert: 0x%X", res);
+        svc::OutputDebugString(out, strlen(out) + 1);
+        */
     }
 }

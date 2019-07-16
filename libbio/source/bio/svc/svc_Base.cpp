@@ -158,4 +158,9 @@ namespace bio::svc
     {
         return __bio_svc_SetHeapSize(address.AsPtr(), size);
     }
+
+    void ExitProcess()
+    {
+        __bio_svc_ExitProcess();
+    }
 }

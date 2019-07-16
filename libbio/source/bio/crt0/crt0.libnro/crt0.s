@@ -18,8 +18,8 @@ _mod_header:
 	.word 0, 0 // eh_frame_hdr start/end
 	.word 0 // runtime-generated module object offset
 
-.global __bio_bin_type
-__bio_bin_type: 
+.global __bio_crt0_ExecutableFormat
+__bio_crt0_ExecutableFormat: 
     .word 2
         
 .section .text, "x"

@@ -13,19 +13,25 @@
 #include <bio/ipc/ipc_Request.hpp>
 #include <bio/log/log_Logging.hpp>
 #include <errno.h>
-#include <bio/fs/fs_Types.hpp>
+#include <bio/sm/sm_Port.hpp>
+#include <bio/err/err_Assertion.hpp>
 #include <sys/stat.h>
+#include <bio/env/env_HomebrewABI.hpp>
 
 extern "C"
 {
-	extern bio::u8 __bio_bin_type;
-	extern void *heap_addr;
-    extern size_t heap_size;
+	extern bio::u8 __bio_crt0_ExecutableFormat;
 
-    int __bio_entrypoint_startup(void *raw_config, uint64_t threadhandle, void *aslr, void *stack);
+    int __bio_crt0_Entrypoint(void *config, bio::u64 thread_handle, void *aslr);
 }
 
-void __bio_relocate(bio::u8 *base, Elf64_Dyn *dyn)
+// Keep global variables for heap address and size, declared here
+void *global_HeapAddress = NULL;
+size_t global_HeapSize = 0;
+
+// Making relocation function weak wouldn't be very useful
+// Grabbed from libnx dynamic.c
+void __bio_crt0_Relocate(bio::u8 *base, Elf64_Dyn *dyn)
 {
     const Elf64_Rela* rela = NULL;
 	bio::u64 relasz = 0;
@@ -59,52 +65,94 @@ void __bio_relocate(bio::u8 *base, Elf64_Dyn *dyn)
 	}
 }
 
-bio::u64 smEncodeName(const char* name)
+// If normal heap function is called this will be set to false, and since user can't change this...
+static bool _inner_UserOverrideHeap = true;
+
+// User can redefine this symbol to use a custom heap size, which will be re-set by the SVC even if HBABI specifies heap override.
+bio::u64 BIO_WEAK __bio_crt0_GetHeapSize()
 {
-    bio::u64 name_encoded = 0;
-    size_t i;
-
-    for (i=0; i<8; i++)
-    {
-        if (name[i] == '\0')
-            break;
-
-        name_encoded |= ((bio::u64) name[i]) << (8*i);
-    }
-
-    return name_encoded;
+	_inner_UserOverrideHeap = false;
+	return 0x20000000; // Is this an appropriate value?
 }
 
-int __bio_entrypoint_startup(void *raw_config, uint64_t thread_handle, void *aslr, void *stack)
+/*
+
+CRT0 entrypoint
+
+Startup:
+
+1 - Relocation
+2 - HBABI config processing (if NRO)
+3 - TODO - memory processing
+4 - heap processing
+5 - TODO - argv processing
+
+Execution:
+
+1 - TODO - high level (services?) initialization not yet decided
+2 - main()
+3 - TODO - cleanup of possible IPC/mem leaks
+4 - return exit code and exit
+
+*/
+
+void BIO_WEAK __bio_crt0_Startup(void *config, bio::u64 thread_handle, void *aslr)
 {
-    bio::u8 *mod_base = (bio::u8*)aslr;
+	bio::u8 *mod_base = (bio::u8*)aslr;
     bio::ld::Module *module = (bio::ld::Module*)&mod_base[*(bio::u32*)&mod_base[4]];
 
 	Elf64_Dyn *dynamic = (Elf64_Dyn*) (((uint8_t*)module) + module->dynamic);
 
-    __bio_relocate(mod_base, dynamic);
+    __bio_crt0_Relocate(mod_base, dynamic);
 
-    if(__bio_bin_type == 0) BIO_LOG("%s", "NSO");
-	else if(__bio_bin_type == 1) BIO_LOG("%s", "NRO");
-	else if(__bio_bin_type == 2) BIO_LOG("%s", "libNRO");
+    if(__bio_crt0_ExecutableFormat == 0) BIO_LOG("%s", "NSO");
+	else if(__bio_crt0_ExecutableFormat == 1) BIO_LOG("%s", "NRO");
+	else if(__bio_crt0_ExecutableFormat == 2) BIO_LOG("%s", "libNRO");
 
-	bio::svc::SetHeapSize(heap_addr, 0x10000000).Assert();
-	heap_size = 0x10000000;
+	if((__bio_crt0_ExecutableFormat == 1) && (config != NULL))
+	{
+		// Just check config if hbloader launched us, thus NRO
+		bio::env::ABIConfigEntry *entry = (bio::env::ABIConfigEntry*)config;
+		while(true)
+		{
+			bio::env::ABIConfigKey key = static_cast<bio::env::ABIConfigKey>(entry->key);
+			if(key == bio::env::ABIConfigKey::EOL) break;
+			switch(key)
+			{
+				case bio::env::ABIConfigKey::OverrideHeap:
+				{
+					global_HeapAddress = (void*)entry->value[0];
+					global_HeapSize = (size_t)entry->value[1];
+					break;
+				}
+				
+			}
+			entry++;
+		}
+	}
 
-	auto fspsrv = bio::fsp::Service::Initialize();
+	// If hbloader didn't give us a base heap, get the default one
+	auto def_heap = __bio_crt0_GetHeapSize();
+	if((global_HeapSize == 0) || (_inner_UserOverrideHeap))
+	{
+		global_HeapSize = def_heap;
+		bio::svc::SetHeapSize(global_HeapAddress, global_HeapSize).Assert();
+	}
+}
 
-	std::shared_ptr<bio::fsp::FileSystem> fs;
+// User entrypoint
+int main(int argc, char **argv);
 
-	fspsrv->OpenSdCardFileSystem(fs).Assert();
-	
-	bio::fs::MountFileSystem(fs, "sd").Assert();
+int BIO_WEAK __bio_crt0_Execution()
+{
+	// Execution is just main for now, until libraries improve
+	return main(0, NULL);
+}
 
-	int i = mkdir("sd:/fs-rules", 777);
+// Actual code called by crt0. The other crt0 sub-phases are can be redefined by the user, but not this function.
 
-	fs.reset();
-
-	BIO_LOG("mkdir: %i", i);
-	BIO_LOG("errno: %i", errno);
-
-	return 0;
+int __bio_crt0_Entrypoint(void *config, bio::u64 thread_handle, void *aslr)
+{
+    __bio_crt0_Startup(config, thread_handle, aslr);
+	return __bio_crt0_Execution();
 }

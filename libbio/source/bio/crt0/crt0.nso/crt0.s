@@ -19,8 +19,8 @@ _mod_header:
 	.word 0, 0 // eh_frame_hdr start/end
 	.word 0 // runtime-generated module object offset
 
-.global __bio_bin_type
-__bio_bin_type: 
+.global __bio_crt0_ExecutableFormat
+__bio_crt0_ExecutableFormat: 
     .word 0
 
 .section .text, "x"
@@ -34,12 +34,12 @@ start:
 
 __bio_bss_loop:
 	cmp x5, x6
-	b.eq __bio_entrypoint
+	b.eq __bio_crt0
 	str xzr, [x5]
 	add x5, x5, 8
 	b __bio_bss_loop
 
-__bio_entrypoint:
+__bio_crt0:
 	adrp x2, _start // aslr base
 	
 	// set LR to svcExitProcess if it's null
@@ -52,6 +52,6 @@ __bio_entrypoint:
 	mov x3, sp
 	sub sp, sp, 0x10
 	stp x29, x30, [sp]
-	bl __bio_entrypoint_startup
+	bl __bio_crt0_Entrypoint
 	ldp x29, x30, [sp], 0x10
 	ret

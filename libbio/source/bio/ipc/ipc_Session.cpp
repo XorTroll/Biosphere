@@ -9,7 +9,7 @@ namespace bio::ipc
     {
     }
 
-    Session::Session(KObject &handle) : handle(handle.Claim()), type(SessionType::Invalid), object_id(UINT32_MAX)
+    Session::Session(KObject &handle) : handle(handle.Claim()), type(SessionType::Normal), object_id(UINT32_MAX)
     {
     }
 
@@ -17,7 +17,7 @@ namespace bio::ipc
     {
     }
 
-    Session::Session(Session &&other) : handle(other.GetHandle().Claim())
+    Session::Session(Session &&other) : handle(0)
     {
         other.Claim(handle, object_id, type);
     }
@@ -67,7 +67,6 @@ namespace bio::ipc
                 svc::CloseHandle(handle.handle);
             }
         }
-        handle.Claim();
         type = SessionType::Invalid;
         object_id = UINT32_MAX;
     }

@@ -11,6 +11,7 @@
 #include <bio/os/os_TLS.hpp>
 #include <malloc.h>
 #include <bio/log/log_Logging.hpp>
+#include <bio/svc/svc_Base.hpp>
 
 extern bio::log::LogWriteFunction global_StdoutLog;
 
@@ -20,12 +21,12 @@ extern "C"
 
     #include <stdatomic.h>
     #include <phal.h>
-
-    bio::u32 __bio_svc_SetHeapSize(void **OutAddress, bio::u64 Size);
 }
 
 extern "C"
 {
+    
+
     static int result_to_errno(bio::u32 res)
     {
         switch (res)
@@ -36,15 +37,15 @@ extern "C"
         }
     }
 
+    void _exit(int ret)
+    {
+        bio::svc::ExitProcess();
+    }
+
     int _getpid_r(struct _reent *reent)
     {
         reent->_errno = ENOSYS;
         return -1;
-    }
-
-    void _exit(int code)
-    {
-        // ??
     }
 
     int _kill_r(struct _reent *reent, int pid, int sig)
@@ -63,26 +64,24 @@ extern "C"
         return -ENOSYS;
     }
 
-    void *heap_addr = NULL;
-    size_t heap_size = 0;
+    extern void *global_HeapAddress;
+    extern size_t global_HeapSize;
     static size_t heap_capacity = 0;
     static const size_t heap_incr_multiple = 0x200000;
 
     void *_sbrk_r(struct _reent *reent, ptrdiff_t incr)
     {
-
-        if(heap_size + incr > heap_capacity)
+        if(global_HeapSize + incr > heap_capacity)
         {
-            ptrdiff_t capacity_incr = heap_size + incr - heap_capacity;
+            ptrdiff_t capacity_incr = global_HeapSize + incr - heap_capacity;
             capacity_incr += (heap_incr_multiple - 1);
             capacity_incr = capacity_incr - (capacity_incr % heap_incr_multiple);
-            auto res = __bio_svc_SetHeapSize(&heap_addr, heap_capacity + capacity_incr);
-            if(res == 0) heap_capacity += capacity_incr;
+            auto res = bio::svc::SetHeapSize(global_HeapAddress, heap_capacity + capacity_incr);
+            if(res.IsSuccess()) heap_capacity += capacity_incr;
             else return NULL;
         }
-
-        void *addr = (bio::u8*)heap_addr + heap_size;
-        heap_size += incr;
+        void *addr = (bio::u8*)global_HeapAddress + global_HeapSize;
+        global_HeapSize += incr;
         return addr;
     }
 

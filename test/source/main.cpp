@@ -1,9 +1,7 @@
-#include <bio/bio_Types.hpp>
-
-// Meh, currently code doesn't even reach main...
+#include <bio/log/log_Logging.hpp>
 
 int main()
 {
-    bio::u64 demo = 9;
+    BIO_LOG("%s", "hello from main!");
     return 0;
 }

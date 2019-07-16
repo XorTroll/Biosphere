@@ -7,12 +7,13 @@
 namespace bio::fs
 {
     static std::vector<std::shared_ptr<Device>> _inner_DeviceList;
+    static std::shared_ptr<fsp::Service> _inner_FsSession;
 
     struct _inner_ProcessedPathBlock
     {
         bool valid;
-        char mount[MaxPath];
-        char processed_path[MaxPath];
+        char mount[fsp::PathMax];
+        char processed_path[fsp::PathMax];
     };
 
     static _inner_ProcessedPathBlock _inner_ProcessPath(const char *path)
@@ -140,6 +141,43 @@ namespace bio::fs
         return ifs->CreateDirectory(path);
     }
 
+    Result FileSystemDevice::RemoveDirectory(const char *path)
+    {
+        return ifs->DeleteDirectoryRecursively(path);
+    }
+
+    Result FileSystemDevice::Stat(const char *path, struct stat *out)
+    {
+        fsp::DirectoryEntryType type;
+        auto res = ifs->GetEntryType(path, type);
+        if(res.IsSuccess())
+        {
+            out->st_mode = (type == fsp::DirectoryEntryType::File) ? S_IFREG : S_IFDIR;
+        }
+        return res;
+    }
+
+    Result Initialize()
+    {
+        _inner_FsSession = fsp::Service::Initialize();
+        return 0;
+    }
+
+    bool IsInitialized()
+    {
+        return _inner_FsSession->IsValid();
+    }
+
+    void Exit()
+    {
+
+    }
+
+    std::shared_ptr<fsp::Service> &GetFsSession()
+    {
+        return _inner_FsSession;
+    }
+
     Result Mount(std::shared_ptr<Device> &device)
     {
         for(u32 i = 0; i < _inner_DeviceList.size(); i++)
@@ -155,6 +193,26 @@ namespace bio::fs
         std::shared_ptr<Device> dev = std::make_shared<FileSystemDevice>(name, fs);
         return Mount(dev);
     }
+
+    void Unmount(const char *mount)
+    {
+        for(u32 i = 0; i < _inner_DeviceList.size(); i++)
+        {
+            if(strcasecmp(mount, _inner_DeviceList[i]->GetMount()) == 0)
+            {
+                _inner_DeviceList.erase(_inner_DeviceList.begin() + i);
+                break;
+            }
+        }
+    }
+
+    Result MountSdCard(const char *name)
+    {
+        std::shared_ptr<fsp::FileSystem> sdfs;
+        auto res = _inner_FsSession->OpenSdCardFileSystem(sdfs);
+        if(res.IsSuccess()) res = MountFileSystem(sdfs, name);
+        return res;
+    }
 }
 
 extern "C"
@@ -168,6 +226,20 @@ extern "C"
     {
         PROCESS_PATH;
         auto res = dev->CreateDirectory(ppath.processed_path, mode);
+        return bio::fs::_inner_ErrnoWithResult(res);
+    }
+
+    int _stat_r(struct _reent *reent, const char *path, struct stat *st)
+    {
+        PROCESS_PATH;
+        auto res = dev->Stat(ppath.processed_path, st);
+        return bio::fs::_inner_ErrnoWithResult(res);
+    }
+
+    int rmdir(const char *path)
+    {
+        PROCESS_PATH;
+        auto res = dev->RemoveDirectory(ppath.processed_path);
         return bio::fs::_inner_ErrnoWithResult(res);
     }
 }

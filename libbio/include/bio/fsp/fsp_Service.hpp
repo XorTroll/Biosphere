@@ -1,6 +1,7 @@
 
 #pragma once
 #include <bio/ipc/ipc_Request.hpp>
+#include <bio/fsp/fsp_Types.hpp>
 
 namespace bio::fsp
 {
@@ -15,8 +16,8 @@ namespace bio::fsp
             Result DeleteDirectoryRecursively(const char *path);
             Result RenameFile(const char *path, const char *new_path);
             Result RenameDirectory(const char *path, const char *new_path);
+            Result GetEntryType(const char *Path, Out<DirectoryEntryType> type);
             /*
-            ResultWrap<DirectoryEntryType> GetEntryType(const char *Path);
             ResultWrap<File*> OpenFile(u32 Mode, const char *Path);
             ResultWrap<Directory*> OpenDirectory(u32 Filter, const char *Path);
             */
