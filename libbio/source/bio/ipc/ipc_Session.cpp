@@ -84,8 +84,8 @@ namespace bio::ipc
     void Session::Claim(KObject &got_handle, Out<u32> got_object_id, Out<SessionType> got_type)
     {
         got_handle.handle = handle.Claim();
-        got_object_id.Set(object_id);
-        got_type.Set(type);
+        (u32&)got_object_id = object_id;
+        (SessionType&)got_type = type;
         type = SessionType::Invalid;
     }
 
@@ -262,7 +262,7 @@ namespace bio::ipc
             u32 size;
         } *oraw = (QueryRaw*)outraw;
         rc = oraw->res;
-        if(rc.IsSuccess()) size.Set((size_t)(oraw->size & 0xffff));
+        if(rc.IsSuccess()) (size_t&)size = (size_t)(oraw->size & 0xffff);
         return rc;
     }
 

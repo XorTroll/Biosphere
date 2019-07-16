@@ -163,4 +163,9 @@ namespace bio::svc
     {
         __bio_svc_ExitProcess();
     }
+
+    Result GetInfo(u32 first_id, u32 second_id, u32 handle, Out<u64> info)
+    {
+        return __bio_svc_GetInfo(info.AsPtr(), first_id, handle, second_id);
+    }
 }

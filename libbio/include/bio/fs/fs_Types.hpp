@@ -6,13 +6,20 @@
 
 namespace bio::fs
 {
+
+    class DeviceDirectory
+    {
+        public:
+            Result Next(Out<fsp::DirectoryEntry> out);
+    };
+
     class Device
     {
         public:
             Device(const char *mount);
             virtual Result CreateDirectory(const char *path, u32 mode) = 0;
             virtual Result RemoveDirectory(const char *path) = 0;
-            virtual Result Stat(const char *path, struct stat *out) = 0;
+            virtual Result Stat(const char *path, Out<struct stat> out_stat) = 0;
 
             const char *GetMount();
         private:
@@ -25,7 +32,7 @@ namespace bio::fs
             FileSystemDevice(const char *mount, std::shared_ptr<fsp::FileSystem> &fs);
             virtual Result CreateDirectory(const char *path, u32 mode) override;
             virtual Result RemoveDirectory(const char *path) override;
-            virtual Result Stat(const char *path, struct stat *out) override;
+            virtual Result Stat(const char *path, Out<struct stat> out_stat) override;
         private:
             std::shared_ptr<fsp::FileSystem> ifs;
     };

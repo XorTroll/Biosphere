@@ -21,6 +21,8 @@ namespace bio::svc
         u64 args[8];
     };
 
+    static constexpr u32 CurrentProcessPseudoHandle = 0xFFFF8001;
+
     Result CloseHandle(u32 handle);
     Result CreateEvent(Out<u32> w_end, Out<u32> r_end);
     Result ResetSignal(u32 signal);
@@ -33,4 +35,5 @@ namespace bio::svc
     Result OutputDebugString(char *str, u64 size);
     Result SetHeapSize(Out<void*> address, u64 size);
     void BIO_NORETURN ExitProcess();
+    Result GetInfo(u32 first_id, u32 second_id, u32 handle, Out<u64> info);
 }

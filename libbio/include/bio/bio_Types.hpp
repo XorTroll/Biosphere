@@ -38,9 +38,9 @@ namespace bio
             {
             }
 
-            void Set(T val)
+            operator T&()
             {
-                ref = val;
+                return ref;
             }
 
             T *AsPtr()

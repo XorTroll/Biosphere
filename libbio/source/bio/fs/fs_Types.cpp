@@ -146,13 +146,15 @@ namespace bio::fs
         return ifs->DeleteDirectoryRecursively(path);
     }
 
-    Result FileSystemDevice::Stat(const char *path, struct stat *out)
+    Result FileSystemDevice::Stat(const char *path, Out<struct stat> out_stat)
     {
         fsp::DirectoryEntryType type;
         auto res = ifs->GetEntryType(path, type);
         if(res.IsSuccess())
         {
-            out->st_mode = (type == fsp::DirectoryEntryType::File) ? S_IFREG : S_IFDIR;
+            struct stat out;
+            out.st_mode = (type == fsp::DirectoryEntryType::File) ? S_IFREG : S_IFDIR;
+            memcpy(out_stat.AsPtr(), &out, sizeof(struct stat));
         }
         return res;
     }
@@ -232,7 +234,7 @@ extern "C"
     int _stat_r(struct _reent *reent, const char *path, struct stat *st)
     {
         PROCESS_PATH;
-        auto res = dev->Stat(ppath.processed_path, st);
+        auto res = dev->Stat(ppath.processed_path, *st);
         return bio::fs::_inner_ErrnoWithResult(res);
     }
 

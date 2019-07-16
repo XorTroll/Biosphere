@@ -126,7 +126,7 @@ namespace bio::ipc
                     data.out_raw_size += sizeof(T);
                     break;
                 case 5:
-                    value = *((T*)(((u8*)data.out_raw_size) + offset));
+                    value = *((T*)(((u8*)data.out_raw) + offset));
                     break;
             }
         }

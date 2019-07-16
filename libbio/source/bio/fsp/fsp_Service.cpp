@@ -1,5 +1,6 @@
 #include <bio/fsp/fsp_Service.hpp>
 #include <cstring>
+#include <functional>
 
 namespace bio::fsp
 {
@@ -52,14 +53,7 @@ namespace bio::fsp
     Result FileSystem::GetEntryType(const char *path, Out<DirectoryEntryType> type)
     {
         MAKE_PATH_COPY(path);
-        u32 detype = 0;
-        auto res = ProcessRequest<7>(ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutRaw<u32>(detype));
-        if(res.IsSuccess())
-        {
-            DirectoryEntryType dtype = static_cast<DirectoryEntryType>(dtype);
-            type.Set(dtype);
-        }
-        return res;
+        return ProcessRequest<7>(ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutRaw<u32>((u32&)(static_cast<DirectoryEntryType&>(type))));
     }
 
     /*
@@ -86,19 +80,13 @@ namespace bio::fsp
     Result FileSystem::GetFreeSpaceSize(const char *path, Out<u64> size)
     {
         MAKE_PATH_COPY(path);
-        u64 sz = 0;
-        auto res = ProcessRequest<11>(ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutRaw<u64>(sz));
-        if(res.IsSuccess()) size.Set(sz);
-        return res;
+        return ProcessRequest<11>(ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutRaw<u64>(static_cast<u64&>(size)));
     }
 
     Result FileSystem::GetTotalSpaceSize(const char *path, Out<u64> size)
     {
         MAKE_PATH_COPY(path);
-        u64 sz = 0;
-        auto res = ProcessRequest<12>(ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutRaw<u64>(sz));
-        if(res.IsSuccess()) size.Set(sz);
-        return res;
+        return ProcessRequest<12>(ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutRaw<u64>(static_cast<u64&>(size)));
     }
 
     Result FileSystem::CleanDirectoryRecursively(const char *path)
@@ -117,11 +105,7 @@ namespace bio::fsp
     {
         u32 obj_id = 0;
         auto res = ProcessRequest<18>(ipc::OutObjectId<0>(obj_id));
-        if(res.IsSuccess())
-        {
-            auto shfs = std::make_shared<FileSystem>(*this, obj_id);
-            fs.Set(shfs);
-        }
+        if(res.IsSuccess()) (std::shared_ptr<FileSystem>&)fs = std::make_shared<FileSystem>(*this, obj_id);
         return res;
     }
 
