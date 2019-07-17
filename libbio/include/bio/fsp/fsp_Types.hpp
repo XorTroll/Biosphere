@@ -32,7 +32,7 @@ namespace bio::fsp
 
     struct DirectoryEntry
     {
-        const char path[PathMax];
+        char path[PathMax];
         u32 unk;
         u32 entry_type;
         u64 file_size;

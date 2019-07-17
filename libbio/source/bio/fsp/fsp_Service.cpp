@@ -6,6 +6,51 @@ namespace bio::fsp
 {
     #define MAKE_PATH_COPY(pp) char send_##pp[PathMax] = {0}; strncpy(send_##pp, pp, PathMax - 1);
 
+    // In File::Read/Write use inner buffers since apparently FS is restrictive and some buffers may not work properly
+
+    Result File::Read(u64 offset, void *buf, size_t size, Out<u64> read)
+    {
+        u8 *tmpbuf = new u8[size];
+        auto res = ProcessRequest<0>(ipc::InRaw<u64>(0), ipc::InRaw<u64>(offset), ipc::InRaw<u64>(size), ipc::OutBuffer(tmpbuf, size, 1), ipc::OutRaw<u64>(static_cast<u64&>(read)));
+        if(res.IsSuccess()) memcpy(buf, tmpbuf, size);
+        delete[] tmpbuf;
+        return res;
+    }
+
+    Result File::Write(u64 offset, const void *buf, size_t size)
+    {
+        u8 *tmpbuf = new u8[size];
+        memcpy(tmpbuf, buf, size);
+        auto res = ProcessRequest<1>(ipc::InRaw<u64>(0), ipc::InRaw<u64>(offset), ipc::InRaw<u64>(size), ipc::InBuffer(tmpbuf, size, 1));
+        delete[] tmpbuf;
+        return res;
+    }
+
+    Result File::Flush()
+    {
+        return ProcessRequest<2>();
+    }
+
+    Result File::SetSize(u64 size)
+    {
+        return this->ProcessRequest<3>(ipc::InRaw<u64>(size));
+    }
+
+    Result File::GetSize(Out<u64> size)
+    {
+        return ProcessRequest<4>(ipc::OutRaw<u64>(static_cast<u64&>(size)));
+    }
+
+    Result Directory::Read(DirectoryEntry *entries, size_t max_count, Out<u64> count)
+    {
+        return ProcessRequest<0>(ipc::OutBuffer(entries, (sizeof(DirectoryEntry) * max_count), 0), ipc::InRaw<u64>(0), ipc::OutRaw<u64>(static_cast<u64&>(count)));
+    }
+
+    Result Directory::GetEntryCount(Out<u64> count)
+    {
+        return ProcessRequest<1>(ipc::OutRaw<u64>(static_cast<u64&>(count)));
+    }
+
     Result FileSystem::CreateFile(u32 flags, u64 size, const char *path)
     {
         MAKE_PATH_COPY(path);
@@ -56,21 +101,23 @@ namespace bio::fsp
         return ProcessRequest<7>(ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutRaw<u32>((u32&)(static_cast<DirectoryEntryType&>(type))));
     }
 
-    /*
-    ResultWrap<File*> FileSystem::OpenFile(u32 Mode, const char *path)
+    Result FileSystem::OpenFile(u32 mode, const char *path, Out<std::shared_ptr<File>> out_file)
     {
-        u32 fh = 0;
-        Result rc = ProcessRequest<8>(ipc::InRaw<u32>(Mode), ipc::InStaticBuffer((char*)path, PathMax, 0), ipc::OutHandle<0>(fh));
-        return ResultWrap<File*>(rc, new File(fh));
+        MAKE_PATH_COPY(path);
+        u32 obj_id = 0;
+        auto res = ProcessRequest<8>(ipc::InRaw<u32>(mode), ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutObjectId<0>(obj_id));
+        if(res.IsSuccess()) (std::shared_ptr<File>&)out_file = std::make_shared<File>(*this, obj_id);
+        return res;
     }
 
-    ResultWrap<Directory*> FileSystem::OpenDirectory(u32 Filter, const char *path)
+    Result FileSystem::OpenDirectory(u32 filter, const char *path, Out<std::shared_ptr<Directory>> out_dir)
     {
-        u32 dh = 0;
-        Result rc = ProcessRequest<9>(ipc::InRaw<u32>(Filter), ipc::InStaticBuffer((char*)path, PathMax, 0), ipc::OutHandle<0>(dh));
-        return ResultWrap<Directory*>(rc, new Directory(dh));
+        MAKE_PATH_COPY(path);
+        u32 obj_id = 0;
+        auto res = ProcessRequest<9>(ipc::InRaw<u32>(filter), ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutObjectId<0>(obj_id));
+        if(res.IsSuccess()) (std::shared_ptr<Directory>&)out_dir = std::make_shared<Directory>(*this, obj_id);
+        return res;
     }
-    */
 
     Result FileSystem::Commit()
     {

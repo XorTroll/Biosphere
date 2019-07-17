@@ -2,25 +2,25 @@
 #include <bio/err/err_Assertion.hpp>
 #include <cstring>
 #include <cerrno>
+#include <bio/fs/fs_Types.hpp>
 #include <bio/input/input_Player.hpp>
+
+#include <fstream>
 
 int main()
 {
     BIO_LOG("%s", "hello from main!");
 
-    bio::input::Initialize(0).Assert();
+    bio::fs::Initialize().Assert();
+    bio::fs::MountSdCard("sdhc").Assert();
 
-    BIO_LOG("Hid service name: %s", bio::input::GetHidSession()->GetServiceName());
-    
-    auto player = bio::input::GetMainPlayer();
-
-    while(true)
+    std::ifstream ifs("sdhc:/boot.config");
+    std::string line;
+    while(std::getline(ifs, line))
     {
-        if(player->GetInputDown() & (bio::input::Key::A | bio::input::Key::B))
-        {
-            BIO_LOG("%s", "A pressed!");
-        }
+        BIO_LOG("Line: '%s'", line.c_str());
     }
+    ifs.close();
 
     return 0;
 }

@@ -5,6 +5,25 @@
 
 namespace bio::fsp
 {
+    class File : public ipc::Session
+    {
+        public:
+            using Session::Session;
+            Result Read(u64 offset, void *buf, size_t size, Out<u64> read);
+            Result Write(u64 offset, const void *buf, size_t size);
+            Result Flush();
+            Result SetSize(u64 Size);
+            Result GetSize(Out<u64> size);
+    };
+
+    class Directory : public ipc::Session
+    {
+        public:
+            using Session::Session;
+            Result Read(DirectoryEntry *entries, size_t max_count, Out<u64> count);
+            Result GetEntryCount(Out<u64> count);
+    };
+
     class FileSystem : public ipc::Session
     {
         public:
@@ -17,10 +36,10 @@ namespace bio::fsp
             Result RenameFile(const char *path, const char *new_path);
             Result RenameDirectory(const char *path, const char *new_path);
             Result GetEntryType(const char *Path, Out<DirectoryEntryType> type);
-            /*
-            ResultWrap<File*> OpenFile(u32 Mode, const char *Path);
-            ResultWrap<Directory*> OpenDirectory(u32 Filter, const char *Path);
-            */
+
+            Result OpenFile(u32 mode, const char *path, Out<std::shared_ptr<File>> out_file);
+            Result OpenDirectory(u32 filter, const char *path, Out<std::shared_ptr<Directory>> out_dir);
+
             Result Commit();
             Result GetFreeSpaceSize(const char *path, Out<u64> size);
             Result GetTotalSpaceSize(const char *path, Out<u64> size);
@@ -34,6 +53,5 @@ namespace bio::fsp
             static std::shared_ptr<Service> Initialize();
             
             Result OpenSdCardFileSystem(Out<std::shared_ptr<FileSystem>> fs);
-        private:
     };
 }

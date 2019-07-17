@@ -1,4 +1,5 @@
 #include <sys/reent.h>
+#include <unistd.h>
 #include <errno.h>
 #include <bio/svc/svc_Base.hpp>
 #include <cstring>
@@ -12,8 +13,7 @@
 #include <malloc.h>
 #include <bio/log/log_Logging.hpp>
 #include <bio/svc/svc_Base.hpp>
-
-extern bio::log::LogWriteFunction global_StdoutLog;
+#include <math.h>
 
 extern "C"
 {
@@ -25,8 +25,6 @@ extern "C"
 
 extern "C"
 {
-    
-
     static int result_to_errno(bio::u32 res)
     {
         switch (res)
@@ -35,6 +33,11 @@ extern "C"
             case 0xEA01: return ETIMEDOUT;
             default: return ENOSYS;
         }
+    }
+
+    long double nanl(const char *s) // Why isn't this defined...?
+    {
+        return NAN;
     }
 
     void _exit(int ret)
@@ -54,14 +57,21 @@ extern "C"
         return -1;
     }
 
-    ssize_t _write_r(struct _reent *reent, int file, const void *ptr, size_t len)
+    int nanosleep(const struct timespec *rqtp, struct timespec *rmtp)
     {
-        if(file == 1) // special case for stdout
+	    bio::svc::SleepThread(rqtp->tv_nsec + (rqtp->tv_sec * 1000000000));
+        return 0;
+    }
+
+    long sysconf(int name)
+    {
+        switch(name)
         {
-            global_StdoutLog(ptr, len);
-            return len;
+            case _SC_PAGESIZE:
+                return 0x1000;
         }
-        return -ENOSYS;
+        errno = ENOSYS;
+	    return -1;
     }
 
     extern void *global_HeapAddress;
@@ -206,24 +216,9 @@ extern "C"
         return -1;
     }
 
-    ssize_t _read_r(struct _reent *reent, int file, void *ptr, size_t len)
-    {
-        return -ENOSYS;
-    }
-
-    int _close_r(struct _reent *reent, int file)
-    {
-        return -1;
-    }
-
     int _isatty_r(struct _reent *reent, int file)
     {
         reent->_errno = ENOSYS;
         return -1;
-    }
-
-    off_t _lseek_r(struct _reent *reent, int file, off_t pos, int whence)
-    {
-        return -ENOSYS;
     }
 }

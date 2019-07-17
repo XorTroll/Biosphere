@@ -26,6 +26,7 @@ namespace bio
 
             static void SetAutoAssert(bool auto_assert);
             static bool GetAutoAssert();
+            static int GetErrnoFrom(Result res);
         private:
             u32 rc;
     };
