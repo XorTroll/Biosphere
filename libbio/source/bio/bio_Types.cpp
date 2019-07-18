@@ -1,4 +1,4 @@
-#include <bio_Types.hpp>
+#include <bio/bio_Types.hpp>
 #include <cstring>
 #include <bio/log/log_Logging.hpp>
 #include <bio/err/err_Assertion.hpp>
@@ -9,6 +9,10 @@ extern bio::err::AssertionFunction global_Assertion;
 namespace bio
 {
     static bool _inner_ResultAutoAssert = false;
+
+    Result::Result() : rc(0)
+    {
+    }
 
     Result::Result(u32 raw) : rc(raw)
     {

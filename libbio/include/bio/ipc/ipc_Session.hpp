@@ -1,7 +1,6 @@
 
 #pragma once
 #include <bio/ipc/ipc_Types.hpp>
-#include <bio/bio_Kernel.hpp>
 #include <bio/os/os_TLS.hpp>
 #include <bio/log/log_Logging.hpp>
 #include <memory>
@@ -12,13 +11,14 @@ namespace bio::ipc
     {
         public:
             Session();
-            Session(KObject &handle);
+            Session(u32 handle);
             Session(Session &parent, u32 object_id);
+            Session(u32 parent_handle, u32 object_id);
             Session(Session &&other);
             Session &operator=(Session &&other);
             void Close();
-            ~Session();
-            KObject &GetHandle();
+            virtual ~Session();
+            u32 GetHandle();
             u32 GetObjectId();
             SessionType GetType();
             bool IsValid();
@@ -27,7 +27,7 @@ namespace bio::ipc
             bool IsDomainSubService();
             Result ConvertToDomain();
             Result QueryPointerBufferSize(Out<size_t> size);
-            void Claim(KObject &got_handle, Out<u32> got_object_id, Out<SessionType> got_type);
+            void Claim(u32 got_handle, Out<u32> got_object_id, Out<SessionType> got_type);
 
             template<u32 CommandId, typename ...Arguments>
             Result ProcessRequest(Arguments &&...Args)
@@ -44,6 +44,8 @@ namespace bio::ipc
                 rq.in_raw_size -= (rq.in_raw_size % alignof(u64));
                 u64 cmdidoff = rq.in_raw_size;
                 rq.in_raw_size += sizeof(u64);
+                rq.requester_session_handle = handle;
+                rq.requester_session_is_domain = domainmode;
                 ProcessArgument(rq, 0, Args...);
                 if(domainmode)
                 {
@@ -138,7 +140,7 @@ namespace bio::ipc
                 *((u64*)(((u8*)rq.in_raw) + magicoff)) = SFCI;
                 *((u64*)(((u8*)rq.in_raw) + cmdidoff)) = CommandId;
                 ProcessArgument(rq, 2, Args...);
-                Result rc = svc::SendSyncRequest(GetHandle().handle);
+                Result rc = svc::SendSyncRequest(handle);
                 if(rc.IsFailure()) return rc;
                 u32 *otls = (u32*)os::GetTLS();
                 rq.out_raw_size += (alignof(u64) - 1);
@@ -219,7 +221,7 @@ namespace bio::ipc
                 return rc;
             }
         protected:
-            KObject handle;
+            u32 handle;
             SessionType type;
             u32 object_id;
         private:

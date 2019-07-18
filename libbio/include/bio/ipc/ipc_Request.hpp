@@ -47,7 +47,7 @@ namespace bio::ipc
         u32 handle;
         HandleMode mode;
 
-        InHandle(KObject in_handle) : handle(in_handle.handle), mode(HMode)
+        InHandle(u32 in_handle) : handle(in_handle), mode(HMode)
         {
         }
 
@@ -66,6 +66,32 @@ namespace bio::ipc
                             data.in_move_hs[data.in_move_hs_size] = handle;
                             data.in_move_hs_size++;
                             break;
+                    }
+                    break;
+            }
+        }
+    };
+
+    template<typename S>
+    struct InSession : RequestArgument
+    {
+        static_assert(std::is_base_of<Session, S>::value, "OutSession object must derive from bio::ipc::Session!");
+
+        std::shared_ptr<S> s;
+
+        InSession(std::shared_ptr<S> &session) : s(session)
+        {
+        }
+
+        void Process(RequestData &data, u8 part) override
+        {
+            switch(part)
+            {
+                case 0:
+                    if(s->IsDomain() || s->IsDomainSubService())
+                    {
+                        data.in_object_ids[data.in_object_ids_size] = s->GetObjectId();
+                        data.in_object_ids_size++;
                     }
                     break;
             }
@@ -144,9 +170,9 @@ namespace bio::ipc
     struct OutHandle : RequestArgument
     {
         u32 idx;
-        KObject &handle;
+        u32 &handle;
 
-        OutHandle(KObject &out_h) : handle(out_h), idx(OIndex)
+        OutHandle(u32 &out_h) : handle(out_h), idx(OIndex)
         {
         }
 
@@ -155,7 +181,7 @@ namespace bio::ipc
             switch(part)
             {
                 case 4:
-                    if(idx < data.out_hs_size) handle = KObject(data.out_hs[idx]);
+                    if(idx < data.out_hs_size) handle = data.out_hs[idx];
                     break;
             }
         }
@@ -182,13 +208,15 @@ namespace bio::ipc
         }
     };
 
-    template<u32 OIndex>
+    template<u32 OIndex, typename S>
     struct OutSession : RequestArgument
     {
-        u32 idx;
-        std::shared_ptr<Session> &s;
+        static_assert(std::is_base_of<Session, S>::value, "OutSession object must derive from bio::ipc::Session!");
 
-        OutSession(std::shared_ptr<Session> &session) : s(session), idx(OIndex)
+        u32 idx;
+        std::shared_ptr<S> &s;
+
+        OutSession(std::shared_ptr<S> &session) : s(session), idx(OIndex)
         {
         }
 
@@ -196,11 +224,14 @@ namespace bio::ipc
         {
             switch(part)
             {
-                case 4:
-                    if(idx < data.out_hs_size)
+                case 5:
+                    if(data.requester_session_is_domain)
                     {
-                        KObject handle(data.out_hs[idx]);
-                        s = std::make_shared<Session>(handle);
+                        if(idx < data.out_object_ids_size) s = std::make_shared<S>(data.requester_session_handle, data.out_object_ids[idx]);
+                    }
+                    else
+                    {
+                        if(idx < data.out_hs_size) s = std::make_shared<S>(data.out_hs[idx]);
                     }
                     break;
             }

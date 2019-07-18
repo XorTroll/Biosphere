@@ -13,6 +13,7 @@ namespace bio::fs
     static std::vector<std::shared_ptr<Device>> _inner_DeviceList;
     static std::vector<std::shared_ptr<DeviceFile>> _inner_FileList;
     static std::shared_ptr<fsp::Service> _inner_FsSession;
+    static bool _inner_Initialized = false;
 
     struct _inner_ProcessedPathBlock
     {
@@ -130,7 +131,7 @@ namespace bio::fs
         return ifile->Write(offset, ptr, size);
     }
 
-    Result FileSystemDeviceFile::Seek(size_t pos, size_t whence, Out<off_t> off)
+    Result FileSystemDeviceFile::Seek(int pos, int whence, Out<off_t> off)
     {
         u64 tmpoff = 0;
         switch(whence)
@@ -144,7 +145,10 @@ namespace bio::fs
             case SEEK_END:
                 ifile->GetSize(tmpoff);
                 break;
+            default:
+                return 0x2ee202;
         }
+        if((pos < 0) && (tmpoff < -pos)) return 0x2ee202;
         offset = tmpoff + pos;
         (off_t&)off = offset;
         return 0;
@@ -227,7 +231,7 @@ namespace bio::fs
 
             /* write-only */
             case O_WRONLY:
-                fspfileflags |= BIO_BITMASK(1) | BIO_BITMASK(2);
+                fspfileflags |= (BIO_BITMASK(1) | BIO_BITMASK(2));
             break;
 
             /* read and write */
@@ -262,22 +266,28 @@ namespace bio::fs
     Result Initialize()
     {
         _inner_FsSession = fsp::Service::Initialize();
+        _inner_Initialized = true;
         return 0;
     }
 
     bool IsInitialized()
     {
-        return _inner_FsSession->IsValid();
+        return _inner_Initialized;
     }
 
-    void Exit()
+    void Finalize()
     {
-
+        if(_inner_Initialized)
+        {
+            UnmountAll();
+            _inner_FsSession.reset();
+            _inner_Initialized = false;
+        }
     }
 
     std::shared_ptr<fsp::Service> &GetFsSession()
     {
-        return _inner_FsSession;
+        return std::ref(_inner_FsSession);
     }
 
     Result Mount(std::shared_ptr<Device> &device)
@@ -286,7 +296,7 @@ namespace bio::fs
         {
             if(strcasecmp(device->GetMount(), _inner_DeviceList[i]->GetMount()) == 0) return 0x7802; // nn libs' error for already mounted with this mount name
         }
-        _inner_DeviceList.push_back(device);
+        _inner_DeviceList.push_back(std::move(device));
         return 0;
     }
 
@@ -306,6 +316,11 @@ namespace bio::fs
                 break;
             }
         }
+    }
+
+    void UnmountAll()
+    {
+        _inner_DeviceList.clear();
     }
 
     Result MountSdCard(const char *name)
@@ -353,7 +368,7 @@ extern "C"
         if(res == 0xdead4) return 0; // File created, not opened
         if(res.IsSuccess())
         {
-            bio::fs::_inner_FileList.push_back(devf);
+            bio::fs::_inner_FileList.push_back(std::move(devf));
             return (bio::fs::_inner_FileList.size() - 1 + 200);
         }
         return bio::fs::_inner_ReturnSetErrnoReent(res, reent);
@@ -362,11 +377,12 @@ extern "C"
     off_t _lseek_r(struct _reent *reent, int file, off_t pos, int whence)
     {
         int vecidx = (file - 200);
-        off_t ret;
+        off_t ret = 0;
         if(vecidx < bio::fs::_inner_FileList.size())
         {
             std::shared_ptr<bio::fs::DeviceFile> fd = std::ref(bio::fs::_inner_FileList.at(vecidx));
-            fd->Seek(pos, whence, ret);
+            auto res = fd->Seek(pos, whence, ret);
+            if(res.IsFailure()) return bio::fs::_inner_ReturnSetErrnoReent(res, reent);
         }
         else
         {
@@ -379,20 +395,21 @@ extern "C"
     ssize_t _read_r(struct _reent *reent, int file, void *ptr, size_t len)
     {
         int vecidx = (file - 200);
-        ssize_t ret;
+        bio::u64 ret = 0;
         if(vecidx < bio::fs::_inner_FileList.size())
         {
             std::shared_ptr<bio::fs::DeviceFile> fd = std::ref(bio::fs::_inner_FileList.at(vecidx));
-            auto res = fd->Read(ptr, len, (bio::u64&)ret);
+            auto res = fd->Read(ptr, len, ret);
+            off_t tmp;
+            if(res.IsSuccess()) res = fd->Seek(ret, SEEK_CUR, tmp);
             if(res.IsFailure()) return bio::fs::_inner_ReturnSetErrnoReent(res, reent);
-            
         }
         else
         {
             reent->_errno = EBADF;
             return -1;
         }
-        return ret;   
+        return (ssize_t)ret;   
     }
 
     ssize_t _write_r(struct _reent *reent, int file, const void *ptr, size_t len)
@@ -404,7 +421,7 @@ extern "C"
             return len;
         }
         int vecidx = (file - 200);
-        ssize_t ret;
+        ssize_t ret = 0;
         if(vecidx < bio::fs::_inner_FileList.size())
         {
             std::shared_ptr<bio::fs::DeviceFile> fd = std::ref(bio::fs::_inner_FileList.at(vecidx));

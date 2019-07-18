@@ -61,13 +61,16 @@ AS_FLAGS := -arch=aarch64 -triple aarch64-none-switch
 # any other libraries may be dynamically linked.
 #   -Bstatic: do not link against shared libraries
 #   -Bdynamic: link against shared libraries
+
+BIOSPHERE_BASE_LIBS	:=	-lc -lm -lclang_rt.builtins-aarch64 -lpthread -llzma -lc++ -lc++abi -lunwind
+
 BIOSPHERE_EXECUTABLE_LDFLAGS := -Bstatic \
-	-lc -lm -lclang_rt.builtins-aarch64 -lpthread -llzma -lc++ -lc++abi -lunwind \
+	$(BIOSPHERE_BASE_LIBS) \
 	-Bdynamic
 
 BIOSPHERE_NRO_LDFLAGS := -lbio-NRO $(BIOSPHERE_EXECUTABLE_LDFLAGS)
 BIOSPHERE_NSO_LDFLAGS := -lbio-NSO $(BIOSPHERE_EXECUTABLE_LDFLAGS)
-BIOSPHERE_LIBNRO_LDFLAGS := -lc -lclang_rt.builtins-aarch64 -lc++ -lc++abi -lunwind
+BIOSPHERE_LIBNRO_LDFLAGS := -lbio-libNRO -lc -lclang_rt.builtins-aarch64 -lc++ -lc++abi -lunwind
 
 ifneq ($(NACP_JSON),)
 BIOSPHERE_NRO_LINKLE_ARGS += --nacp-path "$(NACP_JSON)"

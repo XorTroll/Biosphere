@@ -38,10 +38,10 @@ else ifeq ($(TARGET_MODE),LIBNRO)
 
 all: $(TARGET).lib.nro
 
-$(TARGET).lib.nro : $(TARGET).nrs
+$(TARGET).lib.nro : $(TARGET).lib.nrs
 
 clean_target:
-	@rm -rf $(SOURCE_ROOT)/$(BUILD_DIR) $(TARGET).nrs $(TARGET).lib.nro
+	@rm -rf $(SOURCE_ROOT)/$(BUILD_DIR) $(TARGET).lib.nrs $(TARGET).lib.nro
 
 else ifeq ($(TARGET_MODE),STATICLIB)
 

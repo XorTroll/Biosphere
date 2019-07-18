@@ -34,10 +34,8 @@ namespace bio::err
 
     void SvcOutputAssertionFunction(Result res)
     {
-        /*
         char out[0x100] = {0};
         sprintf(out, "Result assert: 0x%X", res);
-        svc::OutputDebugString(out, strlen(out) + 1);
-        */
+        svc::OutputDebugString(out, 0x100);
     }
 }

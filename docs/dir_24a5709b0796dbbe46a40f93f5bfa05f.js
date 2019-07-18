@@ -1,4 +1,0 @@
-var dir_24a5709b0796dbbe46a40f93f5bfa05f =
-[
-    [ "bio", "dir_6a7b959e6619095ad51246c047d03883.html", "dir_6a7b959e6619095ad51246c047d03883" ]
-];

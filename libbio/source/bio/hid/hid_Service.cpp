@@ -2,9 +2,13 @@
 
 namespace bio::hid
 {
-    Result AppletResource::GetSharedMemoryHandle(Out<KObject> handle)
+    Result AppletResource::GetSharedMemoryHandle(Out<u32> handle)
     {
-        return ProcessRequest<0>(ipc::OutHandle<0>(static_cast<KObject&>(handle)));
+        return ProcessRequest<0>(ipc::OutHandle<0>(static_cast<u32&>(handle)));
+    }
+
+    Service::Service() : ServiceSession("hid")
+    {
     }
 
     std::shared_ptr<Service> Service::Initialize()
@@ -12,16 +16,9 @@ namespace bio::hid
         return std::make_shared<Service>();
     }
 
-    Service::Service() : ServiceSession("hid")
-    {
-    }
-
     Result Service::CreateAppletResource(u64 aruid, Out<std::shared_ptr<AppletResource>> out_res)
     {
-        KObject handle;
-        auto res = ProcessRequest<0>(ipc::InProcessId(), ipc::InRaw<u64>(aruid), ipc::OutHandle<0>(handle));
-        if(res.IsSuccess()) (std::shared_ptr<AppletResource>&)out_res = std::make_shared<AppletResource>(handle);
-        return res;
+        return ProcessRequest<0>(ipc::InProcessId(), ipc::InRaw<u64>(aruid), ipc::OutSession<0, AppletResource>(static_cast<std::shared_ptr<AppletResource>&>(out_res)));
     }
 
     Result Service::SetSupportedNpadStyleSet(u64 aruid, u32 npad_style_tag)

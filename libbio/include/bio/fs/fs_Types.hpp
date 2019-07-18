@@ -18,7 +18,7 @@ namespace bio::fs
         public:
             virtual Result Read(void *ptr, size_t size, Out<u64> written) = 0;
             virtual Result Write(const void *ptr, size_t size) = 0;
-            virtual Result Seek(size_t pos, size_t whence, Out<off_t> off) = 0;
+            virtual Result Seek(int pos, int whence, Out<off_t> off) = 0;
     };
 
     class Device
@@ -52,7 +52,7 @@ namespace bio::fs
             FileSystemDeviceFile(std::shared_ptr<fsp::File> &file);
             virtual Result Read(void *ptr, size_t size, Out<u64> written) override;
             virtual Result Write(const void *ptr, size_t size) override;
-            virtual Result Seek(size_t pos, size_t whence, Out<off_t> off) override;
+            virtual Result Seek(int pos, int whence, Out<off_t> off) override;
             
         private:
             std::shared_ptr<fsp::File> ifile;
@@ -74,12 +74,14 @@ namespace bio::fs
 
     Result Initialize();
     bool IsInitialized();
-    void Exit();
+    void Finalize();
+
     std::shared_ptr<fsp::Service> &GetFsSession();
 
     Result Mount(std::shared_ptr<Device> &device);
     Result MountFileSystem(std::shared_ptr<fsp::FileSystem> &fs, const char *name);
     void Unmount(const char *mount);
+    void UnmountAll();
 
     Result MountSdCard(const char *name);
 }

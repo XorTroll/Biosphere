@@ -56,11 +56,11 @@ namespace bio::input
         auto res = _inner_HidSession->CreateAppletResource(aruid, _inner_AppletResource);
         if(res.IsSuccess())
         {
-            KObject tmphandle;
+            u32 tmphandle;
             res = _inner_AppletResource->GetSharedMemoryHandle(tmphandle);
             if(res.IsSuccess())
             {
-                _inner_HidSharedMem = std::make_shared<os::SharedMemory>(tmphandle.Claim(), 0x40000, Permission::Read);
+                _inner_HidSharedMem = std::make_shared<os::SharedMemory>(tmphandle, 0x40000, Permission::Read);
                 res = _inner_HidSharedMem->Map();
                 if(res.IsSuccess())
                 {

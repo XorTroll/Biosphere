@@ -4,7 +4,7 @@
 
 namespace bio::sm
 {
-    static ipc::Session _inner_Sm(InvalidObject);
+    static std::shared_ptr<ipc::Session> _inner_SmPort;
     static bool _inner_Initialized = false;
 
     Result Initialize()
@@ -14,9 +14,8 @@ namespace bio::sm
         auto res = svc::ConnectToNamedPort(port, "sm:");
         if(res.IsSuccess())
         {
-            KObject smh(port);
-            _inner_Sm = ipc::Session(smh);
-            res = _inner_Sm.ProcessRequest<0>(ipc::InProcessId(), ipc::InRaw<u64>(0), ipc::InRaw<u64>(0), ipc::InRaw<u64>(0));
+            _inner_SmPort = std::make_shared<ipc::Session>(port);
+            res = ((std::shared_ptr<ipc::Session>&)std::ref(_inner_SmPort))->ProcessRequest<0>(ipc::InProcessId(), ipc::InRaw<u64>(0), ipc::InRaw<u64>(0), ipc::InRaw<u64>(0));
             if(res.IsSuccess()) _inner_Initialized = true;
         }
         return res;
@@ -27,9 +26,18 @@ namespace bio::sm
         return _inner_Initialized;
     }
 
-    ipc::Session &GetSession()
+    void Finalize()
     {
-        return _inner_Sm;
+        if(_inner_Initialized)
+        {
+            _inner_SmPort.reset();
+            _inner_Initialized = false;
+        }
+    }
+
+    std::shared_ptr<ipc::Session> &GetSession()
+    {
+        return _inner_SmPort;
     }
 
     static u64 _inner_ConvertServiceName(const char *name)
@@ -43,8 +51,8 @@ namespace bio::sm
         return converted;
     }
 
-    Result GetService(const char *name, KObject &handle)
+    Result GetService(const char *name, Out<u32> handle)
     {
-        return _inner_Sm.ProcessRequest<1>(bio::ipc::InRaw<bio::u64>(_inner_ConvertServiceName(name)), bio::ipc::InRaw<bio::u64>(0), bio::ipc::InRaw<bio::u64>(0), bio::ipc::OutHandle<0>(handle));
+        return ((std::shared_ptr<ipc::Session>&)std::ref(_inner_SmPort))->ProcessRequest<1>(bio::ipc::InRaw<bio::u64>(_inner_ConvertServiceName(name)), bio::ipc::InRaw<bio::u64>(0), bio::ipc::InRaw<bio::u64>(0), bio::ipc::OutHandle<0>(static_cast<u32&>(handle)));
     }
 }

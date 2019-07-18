@@ -9,7 +9,7 @@ namespace bio::hid
     {
         public:
             using Session::Session;
-            Result GetSharedMemoryHandle(Out<KObject> handle);
+            Result GetSharedMemoryHandle(Out<u32> handle);
     };
 
     class Service : public ipc::ServiceSession

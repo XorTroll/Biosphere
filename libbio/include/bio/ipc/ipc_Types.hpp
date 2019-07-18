@@ -1,7 +1,6 @@
 
 #pragma once
 #include <bio/svc/svc_Base.hpp>
-#include <bio/bio_Kernel.hpp>
 #include <memory>
 
 namespace bio::ipc
@@ -76,6 +75,8 @@ namespace bio::ipc
         u32 pad[3];
     };
 
+    class Session;
+
     struct RequestData
     {
         void *in_raw;
@@ -104,6 +105,9 @@ namespace bio::ipc
         u32 out_bufs_static_size;
         Buffer out_bufs_exch[8];
         u32 out_bufs_exch_size;
+        
+        u32 requester_session_handle;
+        bool requester_session_is_domain;
     };
 
     struct RequestArgument

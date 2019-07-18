@@ -9,11 +9,17 @@ namespace bio::ipc
     {
     }
 
-    Session::Session(KObject &handle) : handle(handle.Claim()), type(SessionType::Normal), object_id(UINT32_MAX)
+    Session::Session(u32 handle) : handle(handle), type(SessionType::Normal), object_id(UINT32_MAX)
     {
+        BIO_LOG("Creating session with handle %d", handle);
     }
 
-    Session::Session(Session &parent, u32 object_id) : handle(parent.GetHandle().handle), type(SessionType::DomainSubService), object_id(object_id)
+    Session::Session(Session &parent, u32 object_id) : handle(parent.GetHandle()), type(SessionType::DomainSubService), object_id(object_id)
+    {
+        BIO_LOG("Creating session with parent handle %d and object ID %d", parent.GetHandle(), object_id);
+    }
+
+    Session::Session(u32 parent_handle, u32 object_id) : handle(parent_handle), type(SessionType::DomainSubService), object_id(object_id)
     {
     }
 
@@ -56,15 +62,15 @@ namespace bio::ipc
                 iraw->size = 0;
                 iraw->object_id = object_id;
                 iraw->pad[0] = iraw->pad[1] = 0;
-                svc::SendSyncRequest(handle.handle);
+                svc::SendSyncRequest(handle);
             }
             else
             {
                 u32 *tls = (u32*)os::GetTLS();
                 tls[0] = 2;
                 tls[1] = 0;
-                svc::SendSyncRequest(handle.handle);
-                svc::CloseHandle(handle.handle);
+                svc::SendSyncRequest(handle);
+                svc::CloseHandle(handle);
             }
         }
         type = SessionType::Invalid;
@@ -73,17 +79,18 @@ namespace bio::ipc
 
     Session::~Session()
     {
+        BIO_LOG("Disposing session with handle %d and object ID %d", handle, object_id);
         Close();
     }
 
-    KObject &Session::GetHandle()
+    u32 Session::GetHandle()
     {
         return handle;
     }
 
-    void Session::Claim(KObject &got_handle, Out<u32> got_object_id, Out<SessionType> got_type)
+    void Session::Claim(u32 got_handle, Out<u32> got_object_id, Out<SessionType> got_type)
     {
-        got_handle.handle = handle.Claim();
+        got_handle = handle;
         (u32&)got_object_id = object_id;
         (SessionType&)got_type = type;
         type = SessionType::Invalid;
@@ -131,7 +138,7 @@ namespace bio::ipc
             tls[5] = 0;
             tls[6] = 0;
             tls[7] = 0;
-            rc = svc::SendSyncRequest(handle.handle);
+            rc = svc::SendSyncRequest(handle);
             if(rc.IsFailure()) return rc;
             u32 ctrl0 = *tls++;
             u32 ctrl1 = *tls++;
@@ -207,7 +214,7 @@ namespace bio::ipc
         tls[5] = 0;
         tls[6] = 3;
         tls[7] = 0;
-        rc = svc::SendSyncRequest(handle.handle);
+        rc = svc::SendSyncRequest(handle);
         if(rc.IsFailure()) return rc;
         u32 ctrl0 = *tls++;
         u32 ctrl1 = *tls++;
@@ -271,6 +278,7 @@ namespace bio::ipc
         strcpy(srv_name, name);
         sm::Initialize().Assert();
         sm::GetService(name, handle).Assert();
+        BIO_LOG("Creating session from service '%s' -> handle %d", name, handle);
     }
 
     const char *ServiceSession::GetServiceName()

@@ -4,23 +4,26 @@
 #include <cerrno>
 #include <bio/fs/fs_Types.hpp>
 #include <bio/input/input_Player.hpp>
-
+#include <bio/sm/sm_Port.hpp>
 #include <fstream>
+#include <malloc.h>
+#include <bio/ro/ro_Service.hpp>
+#include <dlfcn.h>
+
+using namespace bio;
+
+extern size_t global_HeapSize;
 
 int main()
 {
-    BIO_LOG("%s", "hello from main!");
+    BIO_LOG("Hello from main(), heap: 0x%X", global_HeapSize);
 
-    bio::fs::Initialize().Assert();
-    bio::fs::MountSdCard("sdhc").Assert();
+    fs::Initialize().Assert();
+    fs::MountSdCard("sd").Assert();
 
-    std::ifstream ifs("sdhc:/boot.config");
-    std::string line;
-    while(std::getline(ifs, line))
-    {
-        BIO_LOG("Line: '%s'", line.c_str());
-    }
-    ifs.close();
 
+    fs::Finalize();
+    sm::Finalize();
+    
     return 0;
 }

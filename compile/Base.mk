@@ -39,8 +39,8 @@ include $(BIOSPHERE_ROOT)/compile/Config.mk
 	@$(BIOSPHERE_ROOT)/utils/ld/linkle nro $(BIOSPHERE_NRO_LINKLE_ARGS) $< $@
 	@echo built ... $(notdir $@)
 
-%.lib.nro: %.nrs
-	@$(BIOSPHERE_ROOT)/utils/ld/linkle nro $(BIOSPHERE_NRO_LINKLE_ARGS) $< $@
+%.lib.nro: %.lib.nrs
+	@$(BIOSPHERE_ROOT)/utils/ld/linkle nro $< $@
 	@echo built ... $(notdir $@)
 
 %.nso: %.nss

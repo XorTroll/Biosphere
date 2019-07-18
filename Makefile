@@ -60,5 +60,8 @@ precompile:
 default: precompile $(DIST)
 	@$(MAKE) -C libbio/
 
-clean:
+clean_real:
 	rm -rf $(BIOSPHERE_HOME) $(BUILD_DIR)
+
+clean:
+	rm -rf $(BIOSPHERE_HOME)

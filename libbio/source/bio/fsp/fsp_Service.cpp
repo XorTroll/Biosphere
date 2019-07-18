@@ -6,24 +6,14 @@ namespace bio::fsp
 {
     #define MAKE_PATH_COPY(pp) char send_##pp[PathMax] = {0}; strncpy(send_##pp, pp, PathMax - 1);
 
-    // In File::Read/Write use inner buffers since apparently FS is restrictive and some buffers may not work properly
-
     Result File::Read(u64 offset, void *buf, size_t size, Out<u64> read)
     {
-        u8 *tmpbuf = new u8[size];
-        auto res = ProcessRequest<0>(ipc::InRaw<u64>(0), ipc::InRaw<u64>(offset), ipc::InRaw<u64>(size), ipc::OutBuffer(tmpbuf, size, 1), ipc::OutRaw<u64>(static_cast<u64&>(read)));
-        if(res.IsSuccess()) memcpy(buf, tmpbuf, size);
-        delete[] tmpbuf;
-        return res;
+        return ProcessRequest<0>(ipc::InRaw<u64>(0), ipc::InRaw<u64>(offset), ipc::InRaw<u64>(size), ipc::OutBuffer(buf, size, 1), ipc::OutRaw<u64>(static_cast<u64&>(read)));
     }
 
     Result File::Write(u64 offset, const void *buf, size_t size)
     {
-        u8 *tmpbuf = new u8[size];
-        memcpy(tmpbuf, buf, size);
-        auto res = ProcessRequest<1>(ipc::InRaw<u64>(0), ipc::InRaw<u64>(offset), ipc::InRaw<u64>(size), ipc::InBuffer(tmpbuf, size, 1));
-        delete[] tmpbuf;
-        return res;
+        return ProcessRequest<1>(ipc::InRaw<u64>(0), ipc::InRaw<u64>(offset), ipc::InRaw<u64>(size), ipc::InBuffer(buf, size, 1));
     }
 
     Result File::Flush()
@@ -104,19 +94,13 @@ namespace bio::fsp
     Result FileSystem::OpenFile(u32 mode, const char *path, Out<std::shared_ptr<File>> out_file)
     {
         MAKE_PATH_COPY(path);
-        u32 obj_id = 0;
-        auto res = ProcessRequest<8>(ipc::InRaw<u32>(mode), ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutObjectId<0>(obj_id));
-        if(res.IsSuccess()) (std::shared_ptr<File>&)out_file = std::make_shared<File>(*this, obj_id);
-        return res;
+        return ProcessRequest<8>(ipc::InRaw<u32>(mode), ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutSession<0, File>(static_cast<std::shared_ptr<File>&>(out_file)));
     }
 
     Result FileSystem::OpenDirectory(u32 filter, const char *path, Out<std::shared_ptr<Directory>> out_dir)
     {
         MAKE_PATH_COPY(path);
-        u32 obj_id = 0;
-        auto res = ProcessRequest<9>(ipc::InRaw<u32>(filter), ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutObjectId<0>(obj_id));
-        if(res.IsSuccess()) (std::shared_ptr<Directory>&)out_dir = std::make_shared<Directory>(*this, obj_id);
-        return res;
+        return ProcessRequest<9>(ipc::InRaw<u32>(filter), ipc::InStaticBuffer(send_path, PathMax, 0), ipc::OutSession<0, Directory>(static_cast<std::shared_ptr<Directory>&>(out_dir)));
     }
 
     Result FileSystem::Commit()
@@ -143,22 +127,20 @@ namespace bio::fsp
         return ProcessRequest<13>(ipc::InStaticBuffer(send_path, PathMax, 0));
     }
 
+    Service::Service() : ServiceSession("fsp-srv")
+    {
+    }
+
     std::shared_ptr<Service> Service::Initialize()
     {
-        return std::make_shared<Service>();
+        auto srv = std::make_shared<Service>();
+        srv->ProcessRequest<1>(ipc::InProcessId(), ipc::InRaw<u64>(0)).Assert();
+        srv->ConvertToDomain().Assert();
+        return srv;
     }
 
     Result Service::OpenSdCardFileSystem(Out<std::shared_ptr<FileSystem>> fs)
     {
-        u32 obj_id = 0;
-        auto res = ProcessRequest<18>(ipc::OutObjectId<0>(obj_id));
-        if(res.IsSuccess()) (std::shared_ptr<FileSystem>&)fs = std::make_shared<FileSystem>(*this, obj_id);
-        return res;
-    }
-
-    Service::Service() : ServiceSession("fsp-srv")
-    {
-        ProcessRequest<1>(ipc::InProcessId(), ipc::InRaw<u64>(0)).Assert();
-        ConvertToDomain().Assert();
+        return ProcessRequest<18>(ipc::OutSession<0, FileSystem>(static_cast<std::shared_ptr<FileSystem>&>(fs)));
     }
 }

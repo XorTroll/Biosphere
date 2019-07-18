@@ -2,7 +2,6 @@
 
 #pragma once
 #include <bio/svc/svc_Base.hpp>
-#include <bio/bio_Kernel.hpp>
 
 namespace bio::os
 {

@@ -13,6 +13,7 @@
 #include <malloc.h>
 #include <bio/log/log_Logging.hpp>
 #include <bio/svc/svc_Base.hpp>
+#include <bio/os/os_Memory.hpp>
 #include <math.h>
 
 extern "C"
@@ -74,8 +75,12 @@ extern "C"
 	    return -1;
     }
 
-    extern void *global_HeapAddress;
-    extern size_t global_HeapSize;
+    void *global_HeapAddress = NULL;
+    size_t global_HeapSize = 0;
+
+    bio::os::VirtualRegion global_AddressSpace;
+    bio::os::VirtualRegion global_Regions[4];
+
     static size_t heap_capacity = 0;
     static const size_t heap_incr_multiple = 0x200000;
 

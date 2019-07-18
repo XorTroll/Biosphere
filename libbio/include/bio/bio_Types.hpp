@@ -18,6 +18,7 @@ namespace bio
     class Result
     {
         public:
+            Result();
             Result(u32 raw);
             bool IsSuccess();
             bool IsFailure();
@@ -51,5 +52,16 @@ namespace bio
 
         private:
             T &ref;
+    };
+
+    enum class Permission
+    {
+        NoPermission = 0,
+        Read = BIO_BITMASK(0),
+        Write = BIO_BITMASK(1),
+        Execute = BIO_BITMASK(2),
+        ReadWrite = (Read | Write),
+        ReadExecute = (Read | Execute),
+        DontCare = BIO_BITMASK(28),
     };
 }
