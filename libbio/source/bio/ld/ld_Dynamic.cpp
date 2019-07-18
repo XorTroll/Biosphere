@@ -116,7 +116,10 @@ namespace bio::ld
             nrr[(0x340 >> 2) + 0] = 0x350;
             nrr[(0x340 >> 2) + 1] = 1; // NRO count
 
-            *(u64*)&((u8*)nrr)[0x330] = 0x010000000000100D; // TODO: process title-id?
+            u64 appid = 0;
+            svc::GetInfo(18, 0, svc::CurrentProcessPseudoHandle, appid); // Get the process's application id via SVC
+
+            *(u64*)&((u8*)nrr)[0x330] = appid;
 
             SHA256_CTX ctx; // TODO: port libnx's hw-accelerated
             sha256_init(&ctx);
