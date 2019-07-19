@@ -174,7 +174,7 @@ namespace bio::fs
             }
             delete[] entries;
         }
-        else res = 0xdead; // custom results...
+        else res = ResultEndOfDirectory;
         return res;
     }
 
@@ -247,9 +247,8 @@ namespace bio::fs
 
         if(flags & O_CREAT)
         {
-            auto res = ifs->CreateFile(0, 0, path);
-            if(res.IsSuccess()) res = 0xdead4;
-            return res;
+            auto res1 = ifs->CreateFile(0, 0, path);
+            if(res1.IsFailure()) return res1;
         }
 
         std::shared_ptr<fsp::File> file;
@@ -365,7 +364,6 @@ extern "C"
         PROCESS_PATH(-1);
         std::shared_ptr<bio::fs::DeviceFile> devf;
         auto res = dev->OpenFile(ppath.processed_path, flags, mode, devf);
-        if(res == 0xdead4) return 0; // File created, not opened
         if(res.IsSuccess())
         {
             bio::fs::_inner_FileList.push_back(std::move(devf));

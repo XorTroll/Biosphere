@@ -20,13 +20,13 @@ namespace bio
         public:
             Result();
             Result(u32 raw);
+            Result(u32 mod, u32 desc);
             bool IsSuccess();
             bool IsFailure();
             operator u32();
             void Assert();
 
-            static void SetAutoAssert(bool auto_assert);
-            static bool GetAutoAssert();
+            static Result Make(u32 mod, u32 desc);
             static int GetErrnoFrom(Result res);
         private:
             u32 rc;
@@ -64,4 +64,6 @@ namespace bio
         ReadExecute = (Read | Execute),
         DontCare = BIO_BITMASK(28),
     };
+
+    static constexpr u32 ResultModule = 420;
 }

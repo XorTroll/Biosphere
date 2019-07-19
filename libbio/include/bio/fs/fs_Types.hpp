@@ -2,6 +2,7 @@
 #pragma once
 #include <bio/bio_Types.hpp>
 #include <bio/fsp/fsp_Service.hpp>
+#include <bio/fs/fs_Results.hpp>
 #include <sys/stat.h>
 #include <sys/dirent.h>
 

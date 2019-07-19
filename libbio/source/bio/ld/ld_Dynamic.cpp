@@ -7,21 +7,6 @@
 #include <cstring>
 #include <dlfcn.h>
 
-#define LIBTRANSISTOR_ERR_TRNLD_INVALID_MODULE_HEADER 0xdead1
-#define LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY 0xdead2
-#define LIBTRANSISTOR_ERR_OUT_OF_MEMORY 0xdead3
-#define LIBTRANSISTOR_ERR_TRNLD_DUPLICATE_DT_ENTRY 0xdead4
-#define LIBTRANSISTOR_ERR_TRNLD_INVALID_SYM_ENT 0xdead5
-#define LIBTRANSISTOR_ERR_TRNLD_INVALID_MODULE_STATE 0xdead6
-#define LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_ENT 0xdead7
-#define LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_TABLE_SIZE 0xdead8
-#define LIBTRANSISTOR_ERR_TRNLD_RELA_SYMBOL_UNSUPPORTED 0xdead9
-#define LIBTRANSISTOR_ERR_TRNLD_UNRECOGNIZED_RELOC_TYPE 0xdeadA
-#define LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_TABLE_TYPE 0xdeadB
-#define LIBTRANSISTOR_ERR_TRNLD_NEEDS_SYMTAB 0xdeadC
-#define LIBTRANSISTOR_ERR_TRNLD_NEEDS_STRTAB 0xdeadD
-#define LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL 0xdeadE
-
 namespace bio::ld
 {
     static std::shared_ptr<ro::Service> _inner_RoSession;
@@ -29,17 +14,17 @@ namespace bio::ld
 
     struct _inner_Elf64_CustomRela
     {
-            u64 r_offset;
-            u32 r_reloc_type;
-            u32 r_symbol;
-            u64 r_addend;
+        u64 r_offset;
+        u32 r_reloc_type;
+        u32 r_symbol;
+        u64 r_addend;
     };
 
     struct _inner_Elf64_CustomRel
     {
-            u64 r_offset;
-            u32 r_reloc_type;
-            u32 r_symbol;
+        u64 r_offset;
+        u32 r_reloc_type;
+        u32 r_symbol;
     };
 
     static Result _inner_ELFDynamic_FindValue(Elf64_Dyn *dynamic, i64 tag, u64 *value)
@@ -50,11 +35,11 @@ namespace bio::ld
         {
             if(dynamic->d_tag == tag)
             {
-                if(found != NULL) return LIBTRANSISTOR_ERR_TRNLD_DUPLICATE_DT_ENTRY;
+                if(found != NULL) return ResultDuplicatedDtEntry;
                 else found = &dynamic->d_un.d_val;
             }
         }
-        if(found == NULL) return LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY;
+        if(found == NULL) return ResultMissingDtEntry;
         *value = *found;
         return 0;
     }
@@ -82,7 +67,7 @@ namespace bio::ld
 
     static Result _inner_Load(const char *path, ModuleBlock *mod)
     {
-        Result res = 0xbabedead;
+        Result res = ResultInvalidInputNro;
         auto f = fopen(path, "rb");
         if(f)
         {
@@ -116,8 +101,8 @@ namespace bio::ld
             nrr[(0x340 >> 2) + 0] = 0x350;
             nrr[(0x340 >> 2) + 1] = 1; // NRO count
 
-            u64 appid = 0;
-            svc::GetInfo(18, 0, svc::CurrentProcessPseudoHandle, appid); // Get the process's application id via SVC
+            u64 appid = 0x010000000000100D;
+            // svc::GetInfo(18, 0, svc::CurrentProcessPseudoHandle, appid); // Get the process's application id via SVC
 
             *(u64*)&((u8*)nrr)[0x330] = appid;
 
@@ -159,24 +144,24 @@ namespace bio::ld
         Elf64_Dyn *dynamic = (Elf64_Dyn*)((u8*)mod_header + mod_header->dynamic);
         mod->dynamic = dynamic;
 
-        if(mod_header->magic != MOD0) return LIBTRANSISTOR_ERR_TRNLD_INVALID_MODULE_HEADER;
+        if(mod_header->magic != MOD0) return ResultInvalidInputNro;
 
         auto r = _inner_ELFDynamic_FindOffset(dynamic, DT_HASH, (void**)&mod->hash, module_base);
-        if(r.IsFailure() && (r != LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY)) return r;
+        if(r.IsFailure() && (r != ResultMissingDtEntry)) return r;
 
         r = _inner_ELFDynamic_FindOffset(dynamic, DT_STRTAB, (void**)&mod->strtab, module_base);
-        if(r.IsFailure() && (r != LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY)) return r;
+        if(r.IsFailure() && (r != ResultMissingDtEntry)) return r;
 
         r = _inner_ELFDynamic_FindOffset(mod->dynamic, DT_SYMTAB, (void**)&mod->symtab, mod->input.base);
-        if(r.IsFailure() && (r != LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY)) return r;
+        if(r.IsFailure() && (r != ResultMissingDtEntry)) return r;
 
         u64 syment;
         r = _inner_ELFDynamic_FindValue(mod->dynamic, DT_SYMENT, &syment);
         if(r.IsSuccess())
         {
-            if(syment != sizeof(Elf64_Sym)) return LIBTRANSISTOR_ERR_TRNLD_INVALID_SYM_ENT;
+            if(syment != sizeof(Elf64_Sym)) return ResultInvalidSymEnt;
         }
-        else if(r != LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY) return r;
+        else if(r != ResultMissingDtEntry) return r;
 
         for(Elf64_Dyn *walker = dynamic; walker->d_tag != DT_NULL; walker++)
         {
@@ -194,9 +179,9 @@ namespace bio::ld
 
     static Result _inner_TryResolveSymbol(ModuleBlock *try_mod, const char *find_name, u64 find_name_hash, Elf64_Sym **def, ModuleBlock **defining_module, bool require_global)
     {
-        if(require_global && !try_mod->input.is_global) return LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL;
-        if(try_mod->symtab == NULL) return LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL;
-        if(try_mod->strtab == NULL) return LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL;
+        if(require_global && !try_mod->input.is_global) return ResultCouldNotResolveSymbol;
+        if(try_mod->symtab == NULL) return ResultCouldNotResolveSymbol;
+        if(try_mod->strtab == NULL) return ResultCouldNotResolveSymbol;
         if(try_mod->hash != NULL)
         {
             u32 nbucket = try_mod->hash[0];
@@ -204,14 +189,14 @@ namespace bio::ld
             u32 index = try_mod->hash[2 + (find_name_hash % nbucket)];
             u32 *chains = try_mod->hash + 2 + nbucket;
             while((index != 0) && (strcmp(find_name, try_mod->strtab + try_mod->symtab[index].st_name) != 0)) index = chains[index];
-            if(index == STN_UNDEF) return LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL;
+            if(index == STN_UNDEF) return ResultCouldNotResolveSymbol;
             Elf64_Sym *sym = &try_mod->symtab[index];
-            if(sym->st_shndx == SHN_UNDEF) return LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL;
+            if(sym->st_shndx == SHN_UNDEF) return ResultCouldNotResolveSymbol;
             *def = sym;
             defining_module = &try_mod;
             return 0;
         }
-        return LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL;
+        return ResultCouldNotResolveSymbol;
     }
 
     Result _inner_ResolveLoadSymbol(ModuleBlock *find_mod, const char *find_name, Elf64_Sym **def, ModuleBlock **defining_module)
@@ -224,23 +209,23 @@ namespace bio::ld
     {
         u64 find_name_hash = _inner_ELF_HashString(find_name);
         auto r = _inner_TryResolveSymbol(find_mod, find_name, find_name_hash, def, defining_module, false);
-        if(r != LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL) return r;
+        if(r != ResultCouldNotResolveSymbol) return r;
 
         for(u32 i = 0; i < find_mod->dependencies.size(); i++)
         {
             r = _inner_TryResolveSymbol(find_mod->dependencies[i], find_name, find_name_hash, def, defining_module, false);
-            if(r == LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL) continue;
+            if(r == ResultCouldNotResolveSymbol) continue;
             else return r;
         }
 
         for(u32 i = 0; i < find_mod->dependencies.size(); i++)
         {
             r = _inner_ResolveDependencySymbol(find_mod->dependencies[i], find_name, def, defining_module);
-            if(r == LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL) continue;
+            if(r == ResultCouldNotResolveSymbol) continue;
             else return r;
         }
 
-        return LIBTRANSISTOR_ERR_TRNLD_COULD_NOT_RESOLVE_SYMBOL;
+        return ResultCouldNotResolveSymbol;
     }
 
     Result _inner_RelocateModuleBase(u8 *module_base)
@@ -252,7 +237,7 @@ namespace bio::ld
         u64 rela_ent = 0;
         u64 rela_count = 0;
 
-        if(mod_header->magic != MOD0) return LIBTRANSISTOR_ERR_TRNLD_INVALID_MODULE_HEADER;
+        if(mod_header->magic != MOD0) return ResultInvalidInputNro;
 
         auto r = _inner_ELFDynamic_FindValue(dynamic, DT_RELA, &rela_offset);
         if(r.IsFailure()) return r;
@@ -263,8 +248,8 @@ namespace bio::ld
         r = _inner_ELFDynamic_FindValue(dynamic, DT_RELACOUNT, &rela_count);
         if(r.IsFailure()) return r;
     
-        if(rela_ent != 0x18) return LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_ENT;
-        if(rela_size != rela_count * rela_ent) return LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_TABLE_SIZE;
+        if(rela_ent != 0x18) return ResultInvalidRelocEnt;
+        if(rela_size != rela_count * rela_ent) return ResultInvalidRelocTableSize;
     
         _inner_Elf64_CustomRela *rela_base = (_inner_Elf64_CustomRela*)(module_base + rela_offset);
         for(u64 i = 0; i < rela_count; i++)
@@ -274,11 +259,11 @@ namespace bio::ld
             switch(rela.r_reloc_type)
             {
                 case 0x403:
-                    if(rela.r_symbol != 0) return LIBTRANSISTOR_ERR_TRNLD_RELA_SYMBOL_UNSUPPORTED;
+                    if(rela.r_symbol != 0) return ResultRelaUnsupportedSymbol;
                     *(void**)(module_base + rela.r_offset) = module_base + rela.r_addend;
                     break;
                 default:
-                    return LIBTRANSISTOR_ERR_TRNLD_UNRECOGNIZED_RELOC_TYPE;
+                    return ResultUnrecognizedRelocType;
             }
         }
         
@@ -290,7 +275,7 @@ namespace bio::ld
         void *raw_table;
         Elf64_Dyn *dynamic = mod->dynamic;
         auto r = _inner_ELFDynamic_FindOffset(dynamic, offset_tag, &raw_table, mod->input.base);
-        if(r == LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY) return 0;
+        if(r == ResultMissingDtEntry) return 0;
         if(r.IsFailure()) return r;
 
         u64 table_size = 0;
@@ -309,21 +294,21 @@ namespace bio::ld
         {
             case DT_RELA:
                 r = _inner_ELFDynamic_FindValue(dynamic, DT_RELAENT, &ent_size);
-                if(r == LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY) ent_size = sizeof(Elf64_Rela);
-                else if(r.IsSuccess() && (ent_size != sizeof(Elf64_Rela))) return LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_ENT;
+                if(r == ResultMissingDtEntry) ent_size = sizeof(Elf64_Rela);
+                else if(r.IsSuccess() && (ent_size != sizeof(Elf64_Rela))) return ResultInvalidRelocEnt;
                 else if(r.IsFailure()) return r;
                 break;
             case DT_REL:
                 r = _inner_ELFDynamic_FindValue(dynamic, DT_RELENT, &ent_size);
-                if(r == LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY) ent_size = sizeof(Elf64_Rel);
-                else if(r.IsSuccess() && (ent_size != sizeof(Elf64_Rel))) return LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_ENT;
+                if(r == ResultMissingDtEntry) ent_size = sizeof(Elf64_Rel);
+                else if(r.IsSuccess() && (ent_size != sizeof(Elf64_Rel))) return ResultInvalidRelocEnt;
                 else if(r.IsFailure()) return r;
                 break;
             default:
-                return LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_TABLE_TYPE;
+                return ResultInvalidRelocTableType;
         }
 
-        if((table_size % ent_size) != 0) return LIBTRANSISTOR_ERR_TRNLD_INVALID_RELOC_TABLE_SIZE;
+        if((table_size % ent_size) != 0) return ResultInvalidRelocTableSize;
 
         for(size_t offset = 0; offset < table_size; offset += ent_size)
         {
@@ -347,8 +332,8 @@ namespace bio::ld
             ModuleBlock *defining_module = mod;
             if(rela.r_symbol != 0)
             {
-                if(mod->symtab == NULL) return LIBTRANSISTOR_ERR_TRNLD_NEEDS_SYMTAB;
-                if(mod->strtab == NULL) return LIBTRANSISTOR_ERR_TRNLD_NEEDS_STRTAB;
+                if(mod->symtab == NULL) return ResultNeedsSymTab;
+                if(mod->strtab == NULL) return ResultNeedsStrTab;
                 Elf64_Sym *sym = &mod->symtab[rela.r_symbol];
                 
                 Elf64_Sym *def;
@@ -380,7 +365,7 @@ namespace bio::ld
                     break;
                 }
                 default:
-                    return LIBTRANSISTOR_ERR_TRNLD_UNRECOGNIZED_RELOC_TYPE;
+                    return ResultUnrecognizedRelocType;
             }
         }
         
@@ -400,7 +385,7 @@ namespace bio::ld
 
     static Result _inner_Initialize(ModuleBlock *mod)
     {
-        if(mod->state != ModuleState::Relocated) return LIBTRANSISTOR_ERR_TRNLD_INVALID_MODULE_STATE;
+        if(mod->state != ModuleState::Relocated) return ResultInvalidModuleState;
         
         void (**init_array)(void);
         size_t init_array_size;
@@ -412,7 +397,7 @@ namespace bio::ld
             if(r.IsFailure()) return r;
             for(size_t i = 0; i < (init_array_size / sizeof(init_array[0])); i++) init_array[i]();
         }
-        else if(r != LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY) return r;
+        else if(r != ResultMissingDtEntry) return r;
 
         mod->state = ModuleState::Initialized;
         return 0;
@@ -420,7 +405,7 @@ namespace bio::ld
 
     static Result _inner_Finalize(ModuleBlock *mod)
     {
-        if(mod->state != ModuleState::Initialized) return LIBTRANSISTOR_ERR_TRNLD_INVALID_MODULE_STATE;
+        if(mod->state != ModuleState::Initialized) return ResultInvalidModuleState;
         
         void (**fini_array)(void);
         size_t fini_array_size;
@@ -432,7 +417,7 @@ namespace bio::ld
             if(r.IsFailure()) return r;
             for(size_t i = 0; i < (fini_array_size / sizeof(fini_array[0])); i++) fini_array[i]();
         }
-        else if(r != LIBTRANSISTOR_ERR_TRNLD_MISSING_DT_ENTRY) return r;
+        else if(r != ResultMissingDtEntry) return r;
 
         mod->state = ModuleState::Finalized;
         return 0;
@@ -532,11 +517,11 @@ namespace bio::ld
     Result LoadModule(const char *path, bool global, Out<std::shared_ptr<Module>> module)
     {
         bio::ld::ModuleBlock *raw_module = new bio::ld::ModuleBlock;
-        if(raw_module == NULL) return LIBTRANSISTOR_ERR_OUT_OF_MEMORY;
+        if(raw_module == NULL) return ResultInvalidInputNro;
         if(path == NULL)
         {
             delete raw_module;
-            return 0xbabedead;
+            return ResultInvalidInputNro;
         }
 
         strcpy(raw_module->input.name, path);

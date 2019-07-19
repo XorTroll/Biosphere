@@ -3,6 +3,7 @@
 #include <bio/bio_Types.hpp>
 #include <cstdio>
 
+// Simplifies things A lot
 #define BIO_LOG bio::log::LogFmt
 
 namespace bio::log

@@ -34,6 +34,7 @@ namespace bio::svc
     Result OutputDebugString(char *str, u64 size);
     Result SetHeapSize(Out<void*> address, u64 size);
     void BIO_NORETURN ExitProcess();
+    void BIO_NORETURN ExitThread();
     Result GetInfo(u32 first_id, u32 second_id, u32 handle, Out<u64> info);
     Result QueryMemory(u64 address, Out<MemoryInfo> mem_info, Out<u32> page_info);
     Result CreateSharedMemory(Out<u32> handle, size_t size, u32 local_perms, u32 perms);

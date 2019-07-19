@@ -14,7 +14,7 @@ namespace bio::err
 
     void AssertResult(Result res)
     {
-        global_Assertion(res);
+        if(res.IsFailure()) global_Assertion(res);
     }
 
     void SetAssertionFunction(AssertionFunction func)
@@ -24,7 +24,11 @@ namespace bio::err
 
     void FatalAssertionFunction(Result res)
     {
-        // fatal!
+        /*
+        auto fatalsrv = fatal::Service::Initialize();
+        fatalsrv->ThrowWithPolicy(res, fatal::ThrowMode::ErrorScreen);
+        fatalsrv.reset();
+        */
     }
 
     void ErrorAppletAssertionFunction(Result res)

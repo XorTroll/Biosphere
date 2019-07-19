@@ -1,12 +1,14 @@
 # Biosphere
 
+> Bringing life to Nintendo Switch homebrrew
+
 Biosphere (previously a devkitA64 homebrew library) is a homebrew toolchain using LLVM ans clang.
 
 **IMPORTANT!** do not attempt to use this for homebrew development yet, since the libraries are still under development.
 
 ## libbio
 
-Biosphere's homebrew library is named `libbio`.
+Biosphere's homebrew library, high-level, 0% C and almost 100% C++ (except some bits of assembly).
 
 Building this library will generate 3 library objects: `libbio-NSO.a`,`libbio-NRO.a` and `libbio-libNRO.a`.
 
@@ -28,7 +30,7 @@ Download the latest release. Will contain the built toolchain inside `Biosphere`
 
 Set `BIOSPHERE_ROOT` environment variable to the directory.
 
-In order to build homebrew, check the test project in `test`.
+In order to build homebrew, check the example projects in `examples`.
 
 ## Credits
 

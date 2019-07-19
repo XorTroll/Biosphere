@@ -3,6 +3,7 @@
 #include <bio/bio_Types.hpp>
 #include <vector>
 #include <elf.h>
+#include <bio/ld/ld_Results.hpp>
 #include <bio/ro/ro_Service.hpp>
 #include <functional>
 

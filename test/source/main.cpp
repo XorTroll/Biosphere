@@ -12,18 +12,17 @@
 
 using namespace bio;
 
-extern size_t global_HeapSize;
-
 int main()
 {
-    BIO_LOG("Hello from main(), heap: 0x%X", global_HeapSize);
-
     fs::Initialize().Assert();
     fs::MountSdCard("sd").Assert();
 
+    FILE *f = fopen("sd:/boot.config", "rb");
+    fclose(f);
+
+    BIO_LOG("yay");
 
     fs::Finalize();
-    sm::Finalize();
     
     return 0;
 }

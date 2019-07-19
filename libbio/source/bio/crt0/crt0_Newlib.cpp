@@ -26,16 +26,6 @@ extern "C"
 
 extern "C"
 {
-    static int result_to_errno(bio::u32 res)
-    {
-        switch (res)
-        {
-            case 0: return 0;
-            case 0xEA01: return ETIMEDOUT;
-            default: return ENOSYS;
-        }
-    }
-
     long double nanl(const char *s) // Why isn't this defined...?
     {
         return NAN;
@@ -43,7 +33,7 @@ extern "C"
 
     void _exit(int ret)
     {
-        bio::svc::ExitProcess();
+        // bio::svc::ExitProcess();
     }
 
     int _getpid_r(struct _reent *reent)
@@ -60,7 +50,7 @@ extern "C"
 
     int nanosleep(const struct timespec *rqtp, struct timespec *rmtp)
     {
-	    bio::svc::SleepThread(rqtp->tv_nsec + (rqtp->tv_sec * 1000000000));
+	    bio::svc::SleepThread(rqtp->tv_nsec + (rqtp->tv_sec * 1'000'000'000));
         return 0;
     }
 
@@ -102,7 +92,7 @@ extern "C"
 
     int posix_memalign (void **memptr, size_t alignment, size_t size)
     {
-        if(alignment % sizeof(void*) != 0 || (alignment & (alignment - 1)) != 0) return EINVAL;
+        if((alignment % sizeof(void*)) != 0 || (alignment & (alignment - 1)) != 0) return EINVAL;
 
         void *mem = memalign(alignment, size);
         
@@ -115,66 +105,54 @@ extern "C"
         return ENOMEM;
     }
 
-    int phal_thread_create(phal_tid *tid, void (*start_routine)(void*), void *arg) {
+    int phal_thread_create(phal_tid *tid, void (*start_routine)(void*), void *arg)
+    {
         return ENOSYS;
     }
 
-    int sched_yield() {
-        return bio::svc::SleepThread(0) != 0 ? -1 : 0;
+    int sched_yield()
+    {
+        return (bio::svc::SleepThread(0) != 0) ? -1 : 0;
     }
 
 
-    // Noreturn !
-    void phal_thread_exit(phal_tid *tid) {
-        //svcExitThread();
+    void phal_thread_exit(phal_tid *tid)
+    {
+        // bio::svc::ExitThread();
     }
 
-    int phal_thread_destroy(phal_tid *tid) {
+    int phal_thread_destroy(phal_tid *tid)
+    {
         return ENOSYS;
     }
 
-    int phal_thread_sleep(uint64_t msec) {
-        uint64_t nanos = msec * 1000 * 1000;
-        return result_to_errno(bio::svc::SleepThread(nanos));
+    int phal_thread_sleep(uint64_t msec)
+    {
+        auto res = bio::svc::SleepThread(msec * 1'000'000);
+        return bio::Result::GetErrnoFrom(res);
     }
 
-    int phal_semaphore_create(phal_semaphore *sem) {
+    int phal_semaphore_create(phal_semaphore *sem)
+    {
         sem->lock = 0;
         sem->sem = 0;
         return 0;
     }
 
-    int phal_semaphore_destroy(phal_semaphore *sem) { return 0; }
+    int phal_semaphore_destroy(phal_semaphore *sem)
+    {
+        return 0;
+    }
 
     /// Wake up one thread waiting for the semaphore.
-    int phal_semaphore_signal(phal_semaphore *sem) {
+    int phal_semaphore_signal(phal_semaphore *sem)
+    {
         return ENOSYS;
     }
 
-    int phal_semaphore_broadcast(phal_semaphore *sem) {
+    int phal_semaphore_broadcast(phal_semaphore *sem)
+    {
         return ENOSYS;
-    }
-
-    static __attribute__((unused)) int timespec_subtract (struct timespec *result, const struct timespec *x, struct timespec *y) {
-        /* Perform the carry for the later subtraction by updating y. */
-        if (x->tv_nsec < y->tv_nsec) {
-            int sec = (y->tv_nsec - x->tv_nsec) / 1000 * 1000 * 1000 + 1;
-            y->tv_nsec -= 1000 * 1000 * 1000 * sec;
-            y->tv_sec += sec;
-        }
-        if (x->tv_nsec - y->tv_nsec > 1000 * 1000 * 1000) {
-            int sec = (y->tv_nsec - x->tv_nsec) / 1000 * 1000 * 1000;
-            y->tv_nsec += 1000 * 1000 * 1000 * sec;
-            y->tv_sec -= sec;
-        }
-
-        /* Compute the time remaining to wait.
-        tv_usec is certainly positive. */
-        result->tv_sec = x->tv_sec - y->tv_sec;
-        result->tv_nsec = x->tv_nsec - y->tv_nsec;
-
-        /* Return 1 if result is negative. */
-        return x->tv_sec < y->tv_sec;
     }
 
     // TODO: This kinda sucks. Different platform behave differently here. For now
@@ -211,9 +189,8 @@ extern "C"
 
     void **phal_get_tls()
     {
-        return NULL; // F I X
+        return NULL; // F I X !!!
     }
-
 
     int _fstat_r(struct _reent *reent, int file, struct stat *st)
     {

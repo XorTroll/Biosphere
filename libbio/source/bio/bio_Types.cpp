@@ -8,15 +8,17 @@ extern bio::err::AssertionFunction global_Assertion;
 
 namespace bio
 {
-    static bool _inner_ResultAutoAssert = false;
-
     Result::Result() : rc(0)
     {
     }
 
     Result::Result(u32 raw) : rc(raw)
     {
-        if(_inner_ResultAutoAssert) Assert();
+    }
+
+    Result Result::Make(u32 mod, u32 desc)
+    {
+        return Result(((mod) & 0x1FF) | ((desc) & 0x1FFF) << 9);
     }
 
     Result::operator u32()
@@ -37,16 +39,6 @@ namespace bio
     void Result::Assert()
     {
         global_Assertion(rc);
-    }
-
-    void Result::SetAutoAssert(bool auto_assert)
-    {
-        _inner_ResultAutoAssert = auto_assert;
-    }
-
-    bool Result::GetAutoAssert()
-    {
-        return _inner_ResultAutoAssert;
     }
 
     int Result::GetErrnoFrom(Result res)
