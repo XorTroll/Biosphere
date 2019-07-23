@@ -3,9 +3,9 @@ using namespace bio;
 
 extern "C"
 {
-    #include "cutils.h"
-    #include "quickjs-libc.h"
-    #include "quickjs.h"
+    #include "quickjs/cutils.h"
+    #include "quickjs/quickjs-libc.h"
+    #include "quickjs/quickjs.h"
     
     static int eval_buf(JSContext *ctx, const void *buf, int buf_len, const char *filename, int eval_flags)
     {
@@ -23,6 +23,8 @@ extern "C"
         return ret;
     }
 
+    #define EVAL_CODE(ctx, str) eval_buf(ctx, str, strlen(str), "<source>", JS_EVAL_TYPE_GLOBAL);
+
     static int eval_file(JSContext *ctx, const char *filename, int eval_flags)
     {
         uint8_t *buf;
@@ -38,6 +40,20 @@ extern "C"
         js_free(ctx, buf);
         return ret;
     }
+
+    static void std_init(JSContext *ctx) // For std stuff
+    {
+        js_init_module_std(ctx, "std");
+        js_init_module_os(ctx, "os");
+
+        const char *base =
+        "import * as std from 'std';\n"
+        "import * as os from 'os';\n"
+        "std.global.std = std;\n"
+        "std.global.os = os;\n";
+
+        eval_buf(ctx, base, strlen(base), "<input>", JS_EVAL_TYPE_MODULE);
+    }
 }
 
 
@@ -50,14 +66,7 @@ int main()
     JSRuntime *rt = JS_NewRuntime();
     JSContext *ctx = JS_NewContext(rt);
 
-    js_init_module_std(ctx, "std");
-    js_init_module_os(ctx, "os");
+    std_init(ctx);
 
-    const char *str = "import * as std from 'std';\n"
-        "import * as os from 'os';\n"
-        "std.global.std = std;\n"
-        "std.global.os = os;\n";
-    eval_buf(ctx, str, strlen(str), "<input>", JS_EVAL_TYPE_MODULE);
-
-    eval_file(ctx, "sd:/demo.js", JS_EVAL_TYPE_GLOBAL);
+    EVAL_CODE(ctx, "std.printf('Hello from QuickJS!');"); // Will call C's printf, thus print to SVC output
 }
