@@ -33,7 +33,7 @@ extern "C"
 
     void _exit(int ret)
     {
-        // bio::svc::ExitProcess();
+        bio::svc::ExitProcess();
     }
 
     int _getpid_r(struct _reent *reent)
@@ -50,8 +50,13 @@ extern "C"
 
     int nanosleep(const struct timespec *rqtp, struct timespec *rmtp)
     {
-	    bio::svc::SleepThread(rqtp->tv_nsec + (rqtp->tv_sec * 1'000'000'000));
-        return 0;
+	    auto res = bio::svc::SleepThread(rqtp->tv_nsec + (rqtp->tv_sec * 1'000'000'000));
+        if(res.IsFailure())
+        {
+            errno = bio::Result::GetErrnoFrom(res);
+            return -1;
+        }
+        return res;
     }
 
     long sysconf(int name)
@@ -92,7 +97,7 @@ extern "C"
 
     int posix_memalign (void **memptr, size_t alignment, size_t size)
     {
-        if((alignment % sizeof(void*)) != 0 || (alignment & (alignment - 1)) != 0) return EINVAL;
+        if(alignment % sizeof(void*) != 0 || (alignment & (alignment - 1)) != 0) return EINVAL;
 
         void *mem = memalign(alignment, size);
         
@@ -112,7 +117,13 @@ extern "C"
 
     int sched_yield()
     {
-        return (bio::svc::SleepThread(0) != 0) ? -1 : 0;
+        auto res = bio::svc::SleepThread(0);
+        if(res.IsFailure())
+        {
+            errno = bio::Result::GetErrnoFrom(res);
+            return -1;
+        }
+        return res;
     }
 
 
@@ -123,13 +134,19 @@ extern "C"
 
     int phal_thread_destroy(phal_tid *tid)
     {
-        return ENOSYS;
+        errno = ENOSYS;
+        return -1;
     }
 
     int phal_thread_sleep(uint64_t msec)
     {
-        auto res = bio::svc::SleepThread(msec * 1'000'000);
-        return bio::Result::GetErrnoFrom(res);
+        auto res = bio::svc::SleepThread(msec * 1000 * 1000);
+        if(res.IsFailure())
+        {
+            errno = bio::Result::GetErrnoFrom(res);
+            return -1;
+        }
+        return res;
     }
 
     int phal_semaphore_create(phal_semaphore *sem)
@@ -147,12 +164,14 @@ extern "C"
     /// Wake up one thread waiting for the semaphore.
     int phal_semaphore_signal(phal_semaphore *sem)
     {
-        return ENOSYS;
+        errno = ENOSYS;
+        return -1;
     }
 
     int phal_semaphore_broadcast(phal_semaphore *sem)
     {
-        return ENOSYS;
+        errno = ENOSYS;
+        return -1;
     }
 
     // TODO: This kinda sucks. Different platform behave differently here. For now
@@ -161,7 +180,8 @@ extern "C"
     /// if a signal was previously sent. This is not a counting semaphore.
     int phal_semaphore_wait(phal_semaphore *sem, const struct timespec *abstime)
     {
-        return ENOSYS;
+        errno = ENOSYS;
+        return -1;
     }
 
     /*
@@ -179,12 +199,14 @@ extern "C"
 
     int phal_semaphore_lock(phal_semaphore *sem)
     {
-        return ENOSYS;
+        errno = ENOSYS;
+        return -1;
     }
 
     int phal_semaphore_unlock(phal_semaphore *sem)
     {
-        return ENOSYS;
+        errno = ENOSYS;
+        return -1;
     }
 
     void **phal_get_tls()
@@ -201,6 +223,12 @@ extern "C"
     int _isatty_r(struct _reent *reent, int file)
     {
         reent->_errno = ENOSYS;
+        return -1;
+    }
+
+    int _gettimeofday_r(struct _reent *reent, struct timeval *__restrict p, void *__restrict z)
+    {
+        reent->_errno = EINVAL;
         return -1;
     }
 }

@@ -1,4 +1,5 @@
 #include <bio/err/err_Assertion.hpp>
+#include <bio/fatal/fatal_Service.hpp>
 #include <svc/svc_Base.hpp>
 #include <cstdio>
 #include <cstring>
@@ -24,11 +25,9 @@ namespace bio::err
 
     void FatalAssertionFunction(Result res)
     {
-        /*
         auto fatalsrv = fatal::Service::Initialize();
         fatalsrv->ThrowWithPolicy(res, fatal::ThrowMode::ErrorScreen);
         fatalsrv.reset();
-        */
     }
 
     void ErrorAppletAssertionFunction(Result res)
@@ -39,7 +38,7 @@ namespace bio::err
     void SvcOutputAssertionFunction(Result res)
     {
         char out[0x100] = {0};
-        sprintf(out, "Result assert: 0x%X", res);
+        sprintf(out, "Result assert: %04d-%04d (0x%X)", 2000 + res.module, res.description, (u32)res);
         svc::OutputDebugString(out, 0x100);
     }
 }

@@ -8,27 +8,31 @@ extern bio::err::AssertionFunction global_Assertion;
 
 namespace bio
 {
-    Result::Result() : rc(0)
+    Result::Result() : module(0), description(0)
     {
     }
 
-    Result::Result(u32 raw) : rc(raw)
+    Result::Result(u32 raw) : module(raw & 0x1FF), description((raw >> 9) & 0x1FFF)
     {
+        if(raw == 0)
+        {
+            module = 0;
+            description = 0;
+        }
     }
 
-    Result Result::Make(u32 mod, u32 desc)
+    Result::Result(u32 mod, u32 desc) : module(mod), description(desc)
     {
-        return Result(((mod) & 0x1FF) | ((desc) & 0x1FFF) << 9);
     }
 
     Result::operator u32()
     {
-        return rc;
+        return BIO_MAKERESULT(module, description);
     }
 
     bool Result::IsSuccess()
     {
-        return (rc == 0);
+        return (description == 0);
     }
 
     bool Result::IsFailure()
@@ -38,7 +42,7 @@ namespace bio
 
     void Result::Assert()
     {
-        global_Assertion(rc);
+        global_Assertion(*this);
     }
 
     int Result::GetErrnoFrom(Result res)

@@ -15,6 +15,12 @@ include $(BIOSPHERE_ROOT)/compile/Config.mk
 	@echo $(notdir $<)
 	$(CXX) $(CXX_FLAGS) $(BIOSPHERE_WARNINGS) -MMD -MP -MF $(SOURCE_ROOT)/$(BUILD_DIR)/$*.d -c -o $(SOURCE_ROOT)/$(BUILD_DIR)/$*.o $(SOURCE_ROOT)/$*.cc
 
+# Rule for building C files
+%.o: %.c
+	@mkdir -p $(dir $(SOURCE_ROOT)/$(BUILD_DIR)/$*.o)
+	@echo $(notdir $<)
+	$(CC) $(CC_FLAGS) $(BIOSPHERE_WARNINGS) -MMD -MP -MF $(SOURCE_ROOT)/$(BUILD_DIR)/$*.d -c -o $(SOURCE_ROOT)/$(BUILD_DIR)/$*.o $(SOURCE_ROOT)/$*.c
+
 # Rule for building assembly files
 %.o: %.s
 	@mkdir -p $(dir $(SOURCE_ROOT)/$(BUILD_DIR)/$*.o)
@@ -28,6 +34,10 @@ include $(BIOSPHERE_ROOT)/compile/Config.mk
 %.nrs: $(OBJECTS)
 	@echo linking $(notdir $@)
 	@$(LD) $(LD_FLAGS) -o $@ $(FULL_OBJECTS) $(BIOSPHERE_NRO_LDFLAGS)
+
+%.lib.nrs: $(OBJECTS)
+	@echo linking $(notdir $@)
+	@$(LD) $(LD_FLAGS) -o $@ $(FULL_OBJECTS) $(BIOSPHERE_LIBNRO_LDFLAGS)
 
 %.a: $(OBJECTS)
 	@echo building $(notdir $@)

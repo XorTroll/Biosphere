@@ -14,6 +14,7 @@ namespace bio::fs
     static std::vector<std::shared_ptr<DeviceFile>> _inner_FileList;
     static std::shared_ptr<fsp::Service> _inner_FsSession;
     static bool _inner_Initialized = false;
+    static bool _inner_StdoutInitialized = false;
 
     struct _inner_ProcessedPathBlock
     {
@@ -152,6 +153,11 @@ namespace bio::fs
         offset = tmpoff + pos;
         (off_t&)off = offset;
         return 0;
+    }
+
+    Result FileSystemDeviceFile::Flush()
+    {
+        return ifile->Flush();
     }
 
     FileSystemDeviceDirectory::FileSystemDeviceDirectory(std::shared_ptr<fsp::Directory> &dir) : idir(dir), entryread_count(-1)
@@ -424,6 +430,9 @@ extern "C"
         {
             std::shared_ptr<bio::fs::DeviceFile> fd = std::ref(bio::fs::_inner_FileList.at(vecidx));
             auto res = fd->Write(ptr, len);
+            off_t tmp;
+            if(res.IsSuccess()) res = fd->Seek(ret, SEEK_CUR, tmp);
+            if(res.IsSuccess()) res = fd->Flush();
             if(res.IsFailure()) return bio::fs::_inner_ReturnSetErrnoReent(res, reent);
             ret = len;
         }

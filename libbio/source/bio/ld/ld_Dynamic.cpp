@@ -6,6 +6,7 @@
 #include <bio/ro/ro_Service.hpp>
 #include <cstring>
 #include <dlfcn.h>
+#include <cstdarg>
 
 namespace bio::ld
 {
@@ -47,9 +48,9 @@ namespace bio::ld
     static Result _inner_ELFDynamic_FindOffset(Elf64_Dyn *dynamic, i64 tag, void **value, void *aslr_base)
     {
         u64 intermediate;
-        auto r = _inner_ELFDynamic_FindValue(dynamic, tag, &intermediate);
+        auto res = _inner_ELFDynamic_FindValue(dynamic, tag, &intermediate);
         *value = (u8*)aslr_base + intermediate;
-        return r;
+        return res;
     }
 
     static u64 _inner_ELF_HashString(const char *name)
@@ -59,7 +60,10 @@ namespace bio::ld
         while(*name)
         {
             h = (h << 4) + *(const u8*)name++;
-            if((g = (h & 0xf0000000)) != 0) h ^= g >> 24;
+            if((g = (h & 0xf0000000)) != 0)
+            {
+                h ^= g >> 24;
+            }
             h&= ~g;
         }
         return h;
@@ -102,8 +106,7 @@ namespace bio::ld
             nrr[(0x340 >> 2) + 1] = 1; // NRO count
 
             u64 appid = 0x010000000000100D;
-            // svc::GetInfo(18, 0, svc::CurrentProcessPseudoHandle, appid); // Get the process's application id via SVC
-
+            svc::GetInfo(18, 0, svc::CurrentProcessPseudoHandle, appid);
             *(u64*)&((u8*)nrr)[0x330] = appid;
 
             SHA256_CTX ctx; // TODO: port libnx's hw-accelerated
@@ -120,17 +123,17 @@ namespace bio::ld
                 return res;
             }
 
-            void *nro_addr = NULL;
+            u64 nro_addr = 0;
 
             res = _inner_RoSession->LoadNrr(nrr, 0x1000);
-            if(res.IsSuccess()) res = _inner_RoSession->LoadNro(nro, filesz, bss, bss_sz, (u64&)nro_addr);
+            if(res.IsSuccess()) res = _inner_RoSession->LoadNro(nro, filesz, bss, bss_sz, nro_addr);
 
             if(res.IsSuccess())
             {
                 mod->input.nro = nro;
                 mod->input.nrr = nrr;
                 mod->input.bss = bss;
-                mod->input.base = nro_addr;
+                mod->input.base = (void*)nro_addr;
             }
         }
         return res;
@@ -139,37 +142,36 @@ namespace bio::ld
     static Result _inner_Scan(ModuleBlock *mod)
     {
         u8 *module_base = (u8*)mod->input.base;
-        u32 mod0_offset = *(u32*)&(module_base)[4];
         ModuleHeader *mod_header = (ModuleHeader*)&module_base[*(uint32_t*)&module_base[4]];
         Elf64_Dyn *dynamic = (Elf64_Dyn*)((u8*)mod_header + mod_header->dynamic);
         mod->dynamic = dynamic;
 
         if(mod_header->magic != MOD0) return ResultInvalidInputNro;
 
-        auto r = _inner_ELFDynamic_FindOffset(dynamic, DT_HASH, (void**)&mod->hash, module_base);
-        if(r.IsFailure() && (r != ResultMissingDtEntry)) return r;
+        auto res = _inner_ELFDynamic_FindOffset(dynamic, DT_HASH, (void**)&mod->hash, module_base);
+        if(res.IsFailure() && (res != ResultMissingDtEntry)) return res;
 
-        r = _inner_ELFDynamic_FindOffset(dynamic, DT_STRTAB, (void**)&mod->strtab, module_base);
-        if(r.IsFailure() && (r != ResultMissingDtEntry)) return r;
+        res = _inner_ELFDynamic_FindOffset(dynamic, DT_STRTAB, (void**)&mod->strtab, module_base);
+        if(res.IsFailure() && (res != ResultMissingDtEntry)) return res;
 
-        r = _inner_ELFDynamic_FindOffset(mod->dynamic, DT_SYMTAB, (void**)&mod->symtab, mod->input.base);
-        if(r.IsFailure() && (r != ResultMissingDtEntry)) return r;
+        res = _inner_ELFDynamic_FindOffset(mod->dynamic, DT_SYMTAB, (void**)&mod->symtab, mod->input.base);
+        if(res.IsFailure() && (res != ResultMissingDtEntry)) return res;
 
-        u64 syment;
-        r = _inner_ELFDynamic_FindValue(mod->dynamic, DT_SYMENT, &syment);
-        if(r.IsSuccess())
+        u64 syment = 0;
+        res = _inner_ELFDynamic_FindValue(mod->dynamic, DT_SYMENT, &syment);
+        if(res.IsSuccess())
         {
             if(syment != sizeof(Elf64_Sym)) return ResultInvalidSymEnt;
         }
-        else if(r != ResultMissingDtEntry) return r;
+        else if(res != ResultMissingDtEntry) return res;
 
         for(Elf64_Dyn *walker = dynamic; walker->d_tag != DT_NULL; walker++)
         {
             if(walker->d_tag == DT_NEEDED)
             {
                 ModuleBlock *dep = new ModuleBlock;
-                r = _inner_Load(mod->strtab + walker->d_un.d_val, dep);
-                if(r.IsSuccess()) mod->dependencies.push_back(dep);
+                res = _inner_Load(mod->strtab + walker->d_un.d_val, dep);
+                if(res.IsSuccess()) mod->dependencies.push_back(dep);
             }
         }
 
@@ -185,7 +187,8 @@ namespace bio::ld
         if(try_mod->hash != NULL)
         {
             u32 nbucket = try_mod->hash[0];
-            u32 nchain = try_mod->hash[1]; (void)nchain;
+            u32 nchain = try_mod->hash[1];
+            BIO_IGNORE(nchain);
             u32 index = try_mod->hash[2 + (find_name_hash % nbucket)];
             u32 *chains = try_mod->hash + 2 + nbucket;
             while((index != 0) && (strcmp(find_name, try_mod->strtab + try_mod->symtab[index].st_name) != 0)) index = chains[index];
@@ -199,110 +202,68 @@ namespace bio::ld
         return ResultCouldNotResolveSymbol;
     }
 
-    Result _inner_ResolveLoadSymbol(ModuleBlock *find_mod, const char *find_name, Elf64_Sym **def, ModuleBlock **defining_module)
+    static Result _inner_ResolveLoadSymbol(ModuleBlock *find_mod, const char *find_name, Elf64_Sym **def, ModuleBlock **defining_module)
     {
         u64 hash = _inner_ELF_HashString(find_name);
         return _inner_TryResolveSymbol(find_mod, find_name, hash, def, defining_module, false);
     }
 
-    Result _inner_ResolveDependencySymbol(ModuleBlock *find_mod, const char *find_name, Elf64_Sym **def, ModuleBlock **defining_module)
+    static Result _inner_ResolveDependencySymbol(ModuleBlock *find_mod, const char *find_name, Elf64_Sym **def, ModuleBlock **defining_module)
     {
         u64 find_name_hash = _inner_ELF_HashString(find_name);
-        auto r = _inner_TryResolveSymbol(find_mod, find_name, find_name_hash, def, defining_module, false);
-        if(r != ResultCouldNotResolveSymbol) return r;
+        auto res = _inner_TryResolveSymbol(find_mod, find_name, find_name_hash, def, defining_module, false);
+        if(res != ResultCouldNotResolveSymbol) return res;
 
         for(u32 i = 0; i < find_mod->dependencies.size(); i++)
         {
-            r = _inner_TryResolveSymbol(find_mod->dependencies[i], find_name, find_name_hash, def, defining_module, false);
-            if(r == ResultCouldNotResolveSymbol) continue;
-            else return r;
+            res = _inner_TryResolveSymbol(find_mod->dependencies[i], find_name, find_name_hash, def, defining_module, false);
+            if(res == ResultCouldNotResolveSymbol) continue;
+            else return res;
         }
 
         for(u32 i = 0; i < find_mod->dependencies.size(); i++)
         {
-            r = _inner_ResolveDependencySymbol(find_mod->dependencies[i], find_name, def, defining_module);
-            if(r == ResultCouldNotResolveSymbol) continue;
-            else return r;
+            res = _inner_ResolveDependencySymbol(find_mod->dependencies[i], find_name, def, defining_module);
+            if(res == ResultCouldNotResolveSymbol) continue;
+            else return res;
         }
 
         return ResultCouldNotResolveSymbol;
-    }
-
-    Result _inner_RelocateModuleBase(u8 *module_base)
-    {
-        ModuleHeader *mod_header = (ModuleHeader*)&module_base[*(u32*)&module_base[4]];
-        Elf64_Dyn *dynamic = (Elf64_Dyn*) (((u8*) mod_header) + mod_header->dynamic);
-        u64 rela_offset = 0;
-        u64 rela_size = 0;
-        u64 rela_ent = 0;
-        u64 rela_count = 0;
-
-        if(mod_header->magic != MOD0) return ResultInvalidInputNro;
-
-        auto r = _inner_ELFDynamic_FindValue(dynamic, DT_RELA, &rela_offset);
-        if(r.IsFailure()) return r;
-        r = _inner_ELFDynamic_FindValue(dynamic, DT_RELASZ, &rela_size);
-        if(r.IsFailure()) return r;
-        r = _inner_ELFDynamic_FindValue(dynamic, DT_RELAENT, &rela_ent);
-        if(r.IsFailure()) return r;
-        r = _inner_ELFDynamic_FindValue(dynamic, DT_RELACOUNT, &rela_count);
-        if(r.IsFailure()) return r;
-    
-        if(rela_ent != 0x18) return ResultInvalidRelocEnt;
-        if(rela_size != rela_count * rela_ent) return ResultInvalidRelocTableSize;
-    
-        _inner_Elf64_CustomRela *rela_base = (_inner_Elf64_CustomRela*)(module_base + rela_offset);
-        for(u64 i = 0; i < rela_count; i++)
-        {
-            _inner_Elf64_CustomRela rela = rela_base[i];
-        
-            switch(rela.r_reloc_type)
-            {
-                case 0x403:
-                    if(rela.r_symbol != 0) return ResultRelaUnsupportedSymbol;
-                    *(void**)(module_base + rela.r_offset) = module_base + rela.r_addend;
-                    break;
-                default:
-                    return ResultUnrecognizedRelocType;
-            }
-        }
-        
-        return 0;
     }
 
     static Result _inner_RunRelocationTable(ModuleBlock *mod, u32 offset_tag, u32 size_tag)
     {
         void *raw_table;
         Elf64_Dyn *dynamic = mod->dynamic;
-        auto r = _inner_ELFDynamic_FindOffset(dynamic, offset_tag, &raw_table, mod->input.base);
-        if(r == ResultMissingDtEntry) return 0;
-        if(r.IsFailure()) return r;
+        auto res = _inner_ELFDynamic_FindOffset(dynamic, offset_tag, &raw_table, mod->input.base);
+        if(res == ResultMissingDtEntry) return 0;
+        if(res.IsFailure()) return res;
 
         u64 table_size = 0;
         u64 table_type = offset_tag;
-        r = _inner_ELFDynamic_FindValue(dynamic, size_tag, &table_size);
-        if(r.IsFailure()) return r;
+        res = _inner_ELFDynamic_FindValue(dynamic, size_tag, &table_size);
+        if(res.IsFailure()) return res;
 
         if(offset_tag == DT_JMPREL)
         {
-            r = _inner_ELFDynamic_FindValue(dynamic, DT_PLTREL, &table_type);
-            if(r.IsFailure()) return r;
+            res = _inner_ELFDynamic_FindValue(dynamic, DT_PLTREL, &table_type);
+            if(res.IsFailure()) return res;
         }
 
         u64 ent_size = 0;
         switch(table_type)
         {
             case DT_RELA:
-                r = _inner_ELFDynamic_FindValue(dynamic, DT_RELAENT, &ent_size);
-                if(r == ResultMissingDtEntry) ent_size = sizeof(Elf64_Rela);
-                else if(r.IsSuccess() && (ent_size != sizeof(Elf64_Rela))) return ResultInvalidRelocEnt;
-                else if(r.IsFailure()) return r;
+                res = _inner_ELFDynamic_FindValue(dynamic, DT_RELAENT, &ent_size);
+                if(res == ResultMissingDtEntry) ent_size = sizeof(Elf64_Rela);
+                else if(res.IsSuccess() && (ent_size != sizeof(Elf64_Rela))) return ResultInvalidRelocEnt;
+                else if(res.IsFailure()) return res;
                 break;
             case DT_REL:
-                r = _inner_ELFDynamic_FindValue(dynamic, DT_RELENT, &ent_size);
-                if(r == ResultMissingDtEntry) ent_size = sizeof(Elf64_Rel);
-                else if(r.IsSuccess() && (ent_size != sizeof(Elf64_Rel))) return ResultInvalidRelocEnt;
-                else if(r.IsFailure()) return r;
+                res = _inner_ELFDynamic_FindValue(dynamic, DT_RELENT, &ent_size);
+                if(res == ResultMissingDtEntry) ent_size = sizeof(Elf64_Rel);
+                else if(res.IsSuccess() && (ent_size != sizeof(Elf64_Rel))) return ResultInvalidRelocEnt;
+                else if(res.IsFailure()) return res;
                 break;
             default:
                 return ResultInvalidRelocTableType;
@@ -337,8 +298,8 @@ namespace bio::ld
                 Elf64_Sym *sym = &mod->symtab[rela.r_symbol];
                 
                 Elf64_Sym *def;
-                r = _inner_ResolveLoadSymbol(mod, mod->strtab + sym->st_name, &def, &defining_module);
-                if(r.IsFailure()) return r;
+                res = _inner_ResolveLoadSymbol(mod, mod->strtab + sym->st_name, &def, &defining_module);
+                if(res.IsFailure()) continue;
                 symbol = (u8*)defining_module->input.base + def->st_value;
             }
             void *delta_symbol = defining_module->input.base;
@@ -374,13 +335,13 @@ namespace bio::ld
 
     static Result _inner_Relocate(ModuleBlock *mod)
     {
-        auto r = _inner_RunRelocationTable(mod, DT_RELA, DT_RELASZ);
-        if(r.IsFailure()) return r;
-        r = _inner_RunRelocationTable(mod, DT_REL, DT_RELSZ);
-        if(r.IsFailure()) return r;
-        r = _inner_RunRelocationTable(mod, DT_JMPREL, DT_PLTRELSZ);
+        auto res = _inner_RunRelocationTable(mod, DT_RELA, DT_RELASZ);
+        if(res.IsFailure()) return res;
+        res = _inner_RunRelocationTable(mod, DT_REL, DT_RELSZ);
+        if(res.IsFailure()) return res;
+        res = _inner_RunRelocationTable(mod, DT_JMPREL, DT_PLTRELSZ);
         mod->state = ModuleState::Relocated;
-        return r;
+        return res;
     }
 
     static Result _inner_Initialize(ModuleBlock *mod)
@@ -390,14 +351,14 @@ namespace bio::ld
         void (**init_array)(void);
         size_t init_array_size;
 
-        auto r = _inner_ELFDynamic_FindOffset(mod->dynamic, DT_INIT_ARRAY, (void**)&init_array, mod->input.base);
-        if(r.IsSuccess())
+        auto res = _inner_ELFDynamic_FindOffset(mod->dynamic, DT_INIT_ARRAY, (void**)&init_array, mod->input.base);
+        if(res.IsSuccess())
         {
-            r = _inner_ELFDynamic_FindValue(mod->dynamic, DT_INIT_ARRAYSZ, &init_array_size);
-            if(r.IsFailure()) return r;
+            res = _inner_ELFDynamic_FindValue(mod->dynamic, DT_INIT_ARRAYSZ, &init_array_size);
+            if(res.IsFailure()) return res;
             for(size_t i = 0; i < (init_array_size / sizeof(init_array[0])); i++) init_array[i]();
         }
-        else if(r != ResultMissingDtEntry) return r;
+        else if(res != ResultMissingDtEntry) return res;
 
         mod->state = ModuleState::Initialized;
         return 0;
@@ -410,19 +371,19 @@ namespace bio::ld
         void (**fini_array)(void);
         size_t fini_array_size;
 
-        auto r = _inner_ELFDynamic_FindOffset(mod->dynamic, DT_FINI_ARRAY, (void**) &fini_array, mod->input.base);
-        if(r.IsSuccess())
+        auto res = _inner_ELFDynamic_FindOffset(mod->dynamic, DT_FINI_ARRAY, (void**)&fini_array, mod->input.base);
+        if(res.IsSuccess())
         {
-            r = _inner_ELFDynamic_FindValue(mod->dynamic, DT_FINI_ARRAYSZ, &fini_array_size) != 0;
-            if(r.IsFailure()) return r;
+            res = _inner_ELFDynamic_FindValue(mod->dynamic, DT_FINI_ARRAYSZ, &fini_array_size);
+            if(res.IsFailure()) return res;
             for(size_t i = 0; i < (fini_array_size / sizeof(fini_array[0])); i++) fini_array[i]();
         }
-        else if(r != ResultMissingDtEntry) return r;
+        else if(res != ResultMissingDtEntry) return res;
 
         mod->state = ModuleState::Finalized;
         return 0;
         fail:
-        return r;
+        return res;
     }
 
     static Result _inner_Destroy(ModuleBlock *mod);
@@ -493,99 +454,18 @@ namespace bio::ld
     {
         return _inner_RoSession;
     }
-
-    Module::Module(ModuleBlock *raw) : raw_module(raw)
-    {
-    }
-
-    Module::~Module()
-    {
-        bio::ld::_inner_Decref(raw_module);
-    }
-
-    void *Module::ResolveSymbolPtr(const char *name)
-    {
-        Elf64_Sym *def = NULL;
-        bio::ld::ModuleBlock *def_mod = NULL;
-
-        auto res = bio::ld::_inner_ResolveDependencySymbol(raw_module, name, &def, &def_mod);
-        if(res.IsFailure() || (def == NULL)) return NULL;
-
-        return (u8*)raw_module->input.base + def->st_value;
-    }
-
-    Result LoadModule(const char *path, bool global, Out<std::shared_ptr<Module>> module)
-    {
-        bio::ld::ModuleBlock *raw_module = new bio::ld::ModuleBlock;
-        if(raw_module == NULL) return ResultInvalidInputNro;
-        if(path == NULL)
-        {
-            delete raw_module;
-            return ResultInvalidInputNro;
-        }
-
-        strcpy(raw_module->input.name, path);
-        raw_module->input.has_run_basic_relocations = false;
-        raw_module->input.is_global = global;
-
-        auto res = bio::ld::_inner_Load(path, raw_module);
-
-        if(res.IsFailure())
-        {
-            delete raw_module;
-            return res;
-        }
-
-        raw_module->ref_count = 1;
-        raw_module->state = bio::ld::ModuleState::Queued;
-
-        res = bio::ld::_inner_Scan(raw_module);
-        if(res.IsFailure())
-        {
-            delete raw_module;
-            return res;
-        }
-
-        res = bio::ld::_inner_Relocate(raw_module);
-        if(res.IsFailure())
-        {
-            delete raw_module;
-            return res;
-        }
-
-        res = bio::ld::_inner_Initialize(raw_module);
-        if(res.IsFailure())
-        {
-            delete raw_module;
-            return res;
-        }
-
-        if(res.IsSuccess())
-        {
-            (std::shared_ptr<Module>&)module = std::make_shared<Module>(raw_module);
-        }
-
-        return res;
-    }
 }
 
-// TODO: thread safety
-static char last_error_buffer[512] = {0};
+static char dlerror_buf[0x200];
+static bio::Result dl_latest_res;
 
-int dlclose(void *ptr)
+static void _inner_UpdateDlerror(const char *error, ...)
 {
-	bio::ld::ModuleBlock *module = (bio::ld::ModuleBlock*)ptr;
-	if(module != NULL)
-    {
-		bio::ld::_inner_Decref(module);
-		delete module;
-	}
-	return 0;
-}
-
-char *dlerror(void)
-{
-	return last_error_buffer;
+    va_list vargs;
+    va_start(vargs, error);
+    memset(dlerror_buf, 0, 0x200);
+    vsprintf(dlerror_buf, error, vargs);
+    va_end(vargs);
 }
 
 void *dlopen(const char *path, int flags)
@@ -593,13 +473,12 @@ void *dlopen(const char *path, int flags)
 	bio::ld::ModuleBlock *module = new bio::ld::ModuleBlock;
 	if(module == NULL)
     {
-        sprintf(last_error_buffer, "Out of memory for object creation");
+        _inner_UpdateDlerror("Could not allocate memory");
 		return module;
 	}
 	if(path == NULL)
     {
-		sprintf(last_error_buffer, "Invalid path");
-        delete module;
+		_inner_UpdateDlerror("Invalid input NRO path");
 		return NULL;
 	}
 
@@ -611,7 +490,8 @@ void *dlopen(const char *path, int flags)
 
     if(res.IsFailure())
     {
-        sprintf(last_error_buffer, "Fail load result: 0x%X", res);
+        _inner_UpdateDlerror("Library load failed: 0x%X", (bio::u32)res);
+        dl_latest_res = res;
         delete module;
 		return NULL;
     }
@@ -622,7 +502,8 @@ void *dlopen(const char *path, int flags)
     res = bio::ld::_inner_Scan(module);
     if(res.IsFailure())
     {
-        sprintf(last_error_buffer, "Fail load result: 0x%X", res);
+        _inner_UpdateDlerror("Library scan failed: 0x%X", (bio::u32)res);
+        dl_latest_res = res;
         delete module;
 		return NULL;
     }
@@ -630,7 +511,8 @@ void *dlopen(const char *path, int flags)
     res = bio::ld::_inner_Relocate(module);
     if(res.IsFailure())
     {
-        sprintf(last_error_buffer, "Fail load result: 0x%X", res);
+        _inner_UpdateDlerror("Library relocation failed: 0x%X", (bio::u32)res);
+        dl_latest_res = res;
         delete module;
 		return NULL;
     }
@@ -638,7 +520,8 @@ void *dlopen(const char *path, int flags)
     res = bio::ld::_inner_Initialize(module);
     if(res.IsFailure())
     {
-        sprintf(last_error_buffer, "Fail load result: 0x%X", res);
+        _inner_UpdateDlerror("Library object initialization failed: 0x%X", (bio::u32)res);
+        dl_latest_res = res;
         delete module;
 		return NULL;
     }
@@ -656,8 +539,57 @@ void *dlsym(void *ptr, const char *symbol)
 	auto res = bio::ld::_inner_ResolveDependencySymbol(module, symbol, &def, &def_mod);
 	if(res.IsFailure())
     {
-		sprintf(last_error_buffer, "Fail load symbol result: 0x%X", res);
+		_inner_UpdateDlerror("Symbol resolving failed: 0x%X", (bio::u32)res);
+        dl_latest_res = res;
 		return NULL;
 	}
     return (bio::u8*)module->input.base + def->st_value;
+}
+
+int dlclose(void *ptr)
+{
+	bio::ld::ModuleBlock *module = (bio::ld::ModuleBlock*)ptr;
+	if(module != NULL)
+    {
+		bio::ld::_inner_Decref(module);
+		delete module;
+	}
+	return 0;
+}
+
+char *dlerror(void)
+{
+	return dlerror_buf;
+}
+
+namespace bio::ld
+{
+    Module::Module(ModuleBlock *raw) : raw_module(raw)
+    {
+    }
+
+    Module::~Module()
+    {
+        dlclose(raw_module);
+    }
+
+    void *Module::ResolveSymbolPtr(const char *name)
+    {
+        return dlsym(raw_module, name);
+    }
+
+    Result LoadModule(const char *path, bool global, Out<std::shared_ptr<Module>> module)
+    {
+        int flags = RTLD_LOCAL;
+        if(global) flags = RTLD_GLOBAL;
+
+        bio::ld::ModuleBlock *raw_module = (bio::ld::ModuleBlock*)dlopen(path, flags);
+        if(raw_module != NULL)
+        {
+            (std::shared_ptr<Module>&)module = std::make_shared<Module>(raw_module);
+            return dl_latest_res;
+        }
+
+        return 0;
+    }
 }

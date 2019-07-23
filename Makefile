@@ -37,7 +37,7 @@ include mk/openlibm.mk
 include mk/libcxx.mk
 
 DIST := $(DIST_NEWLIB) $(DIST_PTHREAD) $(DIST_COMPILER_RT) $(DIST_LIBLZMA) $(DIST_OPENLIBM) $(DIST_LIBCXX) $(DIST_LIBCXXABI) $(DIST_LIBUNWIND)
-SUPPORT_HEADERS := machine/_align.h sys/_iovec.h sys/socket.h sys/_sockaddr_storage.h sys/sockio.h netinet/in.h netinet/tcp.h netdb.h arpa/inet.h net/if.h sys/features.h nl_types.h lz4.h netinet6/in6.h features.h sha256.h expected.hpp dlfcn.h poll.h
+SUPPORT_HEADERS := endian.h machine/_align.h sys/_iovec.h sys/socket.h sys/_sockaddr_storage.h sys/sockio.h netinet/in.h netinet/tcp.h netdb.h arpa/inet.h net/if.h sys/features.h nl_types.h lz4.h netinet6/in6.h features.h sha256.h expected.hpp dlfcn.h poll.h
 
 dist: $(DIST)
 .PHONY: dist

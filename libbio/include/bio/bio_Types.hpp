@@ -15,21 +15,19 @@ namespace bio
     typedef uint64_t u64;
     typedef int64_t i64;
 
-    class Result
+    struct Result
     {
-        public:
-            Result();
-            Result(u32 raw);
-            Result(u32 mod, u32 desc);
-            bool IsSuccess();
-            bool IsFailure();
-            operator u32();
-            void Assert();
+        Result();
+        Result(u32 raw);
+        Result(u32 mod, u32 desc);
+        bool IsSuccess();
+        bool IsFailure();
+        operator u32();
+        void Assert();
+        static int GetErrnoFrom(Result res);
 
-            static Result Make(u32 mod, u32 desc);
-            static int GetErrnoFrom(Result res);
-        private:
-            u32 rc;
+        u32 module;
+        u32 description;
     };
 
     template<typename T>
@@ -65,5 +63,5 @@ namespace bio
         DontCare = BIO_BITMASK(28),
     };
 
-    static constexpr u32 ResultModule = 420;
+    static const u32 ResultModule = 420;
 }

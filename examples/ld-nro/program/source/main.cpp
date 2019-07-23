@@ -3,11 +3,13 @@
 #include <bio/ld/ld_Dynamic.hpp>
 #include <bio/sm/sm_Port.hpp>
 
+#include <dlfcn.h> // Since Module uses dl* stuff, dlerror is useful for error detecting
+
 using namespace bio;
 
 int main()
 {
-    BIO_LOG("%s", "Hello from main!");
+    BIO_LOG("Hello from main!");
 
     fs::Initialize().Assert();
     fs::MountSdCard("sdcard").Assert();
@@ -16,8 +18,8 @@ int main()
 
     u64 tmpptr = 0;
 
-    { // Suppors both C++-style Module class
-        std::shared_ptr<ld::Module> module;
+    {
+        std::shared_ptr<ld::Module> module; // bio::ld::Module is a wrapper for dlopen/dlsym/dlclose
         ld::LoadModule("sdcard:/demo.lib.nro", false, module).Assert();
 
         BIO_LOG("%s", "Module loaded (ld::LoadModule)");
@@ -28,7 +30,7 @@ int main()
             BIO_LOG("Function ptr (GetModuleName): %p", get_mod_func);
             BIO_LOG("Demo text: %s", get_mod_func());
         }
-        else BIO_LOG("No func...");
+        else BIO_LOG("Error -> %s", dlerror());
 
         auto say_hello_func = module->ResolveSymbol<void(*)()>("SayHello");
         tmpptr = (u64)say_hello_func;
@@ -37,14 +39,17 @@ int main()
             BIO_LOG("Function ptr (SayHello): %p", say_hello_func);
             say_hello_func();
         }
+        else BIO_LOG("Error -> %s", dlerror());
 
-        // Disposed by RAII
+        // Module object is disposed by RAII
     }
 
     ld::Finalize();
 
     fs::Finalize();
     sm::Finalize();
+
+    while(true);
     
-    return tmpptr;
+    return 0;
 }

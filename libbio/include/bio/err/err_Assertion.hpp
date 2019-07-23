@@ -1,7 +1,6 @@
 
 #pragma once
 #include <bio/bio_Types.hpp>
-#include <bio/fatal/fatal_Service.hpp>
 
 namespace bio::err
 {
