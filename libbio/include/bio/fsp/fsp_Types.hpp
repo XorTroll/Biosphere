@@ -32,9 +32,10 @@ namespace bio::fsp
 
     struct DirectoryEntry
     {
-        char path[PathMax];
-        u32 unk;
-        u32 entry_type;
+        char name[PathMax];
+        u8 pad[3];
+        i8 type;
+        u8 pad2[3];
         u64 file_size;
     };
 }

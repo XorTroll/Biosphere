@@ -160,27 +160,39 @@ namespace bio::fs
         return ifile->Flush();
     }
 
-    FileSystemDeviceDirectory::FileSystemDeviceDirectory(std::shared_ptr<fsp::Directory> &dir) : idir(dir), entryread_count(-1)
+    FileSystemDeviceDirectory::FileSystemDeviceDirectory(std::shared_ptr<fsp::Directory> &dir) : idir(dir), entries_block(NULL)
     {
+    }
+
+    FileSystemDeviceDirectory::~FileSystemDeviceDirectory()
+    {
+        if(entries_block != NULL) delete[] entries_block;
     }
 
     Result FileSystemDeviceDirectory::Next(Out<fsp::DirectoryEntry> out)
     {
-        u64 count = 0;
-        auto res = idir->GetEntryCount(count);
-        if((entryread_count + 1) < count)
+        Result res;
+        if(entries_block == NULL)
         {
-            fsp::DirectoryEntry *entries = new fsp::DirectoryEntry[count];
-            u64 countnew = 0;
-            res = idir->Read(entries, count, countnew);
-            if(res.IsSuccess())
-            {
-                entryread_count++;
-                memcpy(out.AsPtr(), &entries[entryread_count], sizeof(fsp::DirectoryEntry));
-            }
-            delete[] entries;
+            entry_index = 0;
+            entry_count = 0;
+            res = idir->GetEntryCount(entry_count);
+            if(res.IsFailure()) return res;
+            entries_block = new fsp::DirectoryEntry[entry_count];
+            u64 tmp;
+            res = idir->Read(entries_block, entry_count, tmp);
         }
-        else res = ResultEndOfDirectory;
+
+        if(res.IsSuccess())
+        {
+            if(entry_index < entry_count)
+            {
+                memcpy(out.AsPtr(), &entries_block[entry_index], sizeof(fsp::DirectoryEntry));
+                entry_index++;
+            }
+            else res = ResultEndOfDirectory;
+        }
+
         return res;
     }
 
@@ -335,6 +347,29 @@ namespace bio::fs
         if(res.IsSuccess()) res = MountFileSystem(sdfs, name);
         return res;
     }
+
+    extern "C"
+    {
+        extern bio::u8 __bio_crt0_ExecutableFormat;
+    }
+
+    extern void *global_NroRomImage;
+
+    Result MountRom(const char *name)
+    {
+        Result res;
+        if(__bio_crt0_ExecutableFormat == 0) // Regular title
+        {
+            std::shared_ptr<fsp::FileSystem> romfs;
+            res = _inner_FsSession->OpenDataFileSystemByCurrentProcess(romfs);
+            if(res.IsSuccess()) res = MountFileSystem(romfs, name);
+        }
+        else if(global_NroRomImage != NULL)
+        {
+            // mount romfs dev using global_NroRomImage
+        }
+        return res;
+    }
 }
 
 extern "C"
@@ -487,8 +522,8 @@ struct dirent *readdir(DIR *dp)
     if(res.IsSuccess())
     {
         memset(&dp->ent, 0, sizeof(dp->ent));
-        strcpy(dp->ent.d_name, ent.path);
-        dp->ent.d_namlen = strlen(ent.path);
+        strcpy(dp->ent.d_name, ent.name);
+        dp->ent.d_namlen = strlen(ent.name);
         dp->ent.d_name[dp->ent.d_namlen] = '\0';
         dp->ent.d_ino = 0;
         return &dp->ent;

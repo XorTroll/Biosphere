@@ -139,6 +139,11 @@ namespace bio::fsp
         return srv;
     }
 
+    Result Service::OpenDataFileSystemByCurrentProcess(Out<std::shared_ptr<FileSystem>> fs)
+    {
+        return ProcessRequest<2>(ipc::OutSession<0, FileSystem>(static_cast<std::shared_ptr<FileSystem>&>(fs)));
+    }
+    
     Result Service::OpenSdCardFileSystem(Out<std::shared_ptr<FileSystem>> fs)
     {
         return ProcessRequest<18>(ipc::OutSession<0, FileSystem>(static_cast<std::shared_ptr<FileSystem>&>(fs)));

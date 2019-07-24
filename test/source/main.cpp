@@ -1,11 +1,26 @@
 
-#include <bio/err/err_Assertion.hpp>
+#include <bio/fs/fs_Types.hpp>
 using namespace bio;
 
-int main()
+int main(int argc, char **argv)
 {
-    err::SetAssertionFunction(err::FatalAssertionFunction);
-    err::AssertResult(0xdead);
+    fs::Initialize().Assert();
+    fs::MountSdCard("sd").Assert();
+
+    DIR *dp = opendir("sd:");
+    if(dp)
+    {
+        dirent *dt;
+        while(true)
+        {
+            dt = readdir(dp);
+            if(dt == NULL) break;
+            BIO_LOG("sdmc:/%s", dt->d_name);
+        }
+        closedir(dp);
+    }
+
+    fs::Finalize();
 
     return 0;
 }

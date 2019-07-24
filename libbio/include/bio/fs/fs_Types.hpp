@@ -42,10 +42,13 @@ namespace bio::fs
     {
         public:
             FileSystemDeviceDirectory(std::shared_ptr<fsp::Directory> &dir);
+            ~FileSystemDeviceDirectory();
             virtual Result Next(Out<fsp::DirectoryEntry> out) override;
         private:
             std::shared_ptr<fsp::Directory> idir;
-            int entryread_count;
+            fsp::DirectoryEntry *entries_block;
+            u64 entry_count;
+            int entry_index;
     };
 
     class FileSystemDeviceFile final : public DeviceFile
@@ -87,6 +90,7 @@ namespace bio::fs
     void UnmountAll();
 
     Result MountSdCard(const char *name);
+    Result MountRom(const char *name);
 }
 
 extern "C"
