@@ -6,27 +6,27 @@ Modules are identified by namespaces.
 
 As few as possible inner namespaces and as short as possible namespace names are preferred and suggested.
 
-Simple global namespaces as `bio::sm` for SM-related content is a good example.
+Simple global namespaces as `bio::sm` for SM-related content are a good example.
 
 ## Functions
 
 Functions are named after PascalCase.
 
-"Too" long function names aren't a problem, but it would be better to avoid too long function names.
+"Too" long function names aren't a problem, but it would be better to avoid them.
 
 ## Services
 
 Notice the difference between these two terms:
 
-- IPC implementation is just the IPC implementation of the service(s). Only handles IPC commands and interfaces.
+- **IPC implementation** is just the IPC implementation of the service(s). Only handles IPC commands and interfaces.
 
-- Service wrapper is a more high-level or user-friendly implementation of the IPC implementation.
+- **Service wrapper** is a more high-level or user-friendly implementation of the IPC implementation.
 
 Some examples: `fsp` as IPC and `fs` as the wrapper, `hid` as IPC and `input` as the wrapper, `ro` as IPC and `ld` as the wrapper... (TODO: add more of these)
 
 ### IPC implementations
 
-Must be in a seperate module, preferably named after the service name or a similar one (see `hid`, `sm`, `fsp`, `fatal`...)
+Must be in a separate module, preferably named after the service name or a similar one (see `hid`, `sm`, `fsp`, `fatal`...)
 
 The service must be obtained from a class named `Service` inheriting from `bio::ipc::ServiceSession` which must follow this simple structure:
 
@@ -42,7 +42,7 @@ class Service
 };
 ```
 
-The constructor musn't contain any code besides the `ServiceSession` initialization:
+The constructor mustn't contain any code besides the `ServiceSession` initialization:
 
 ```cpp
 Service::Service() : ServiceSession("service-name")
@@ -50,7 +50,7 @@ Service::Service() : ServiceSession("service-name")
 }
 ```
 
-However, if the service would need to call a "Initialize"-like IPC command in order to be used (like in `fsp`, `ro`, `sm`...) that initialization call should only be present in the static shared pointer call.
+However, if the service would need to call an initialization IPC command in order to be used (like in `fsp`, `ro`, `sm`...) that initialization call should only be present in the static shared pointer call.
 
 Sample implementations:
 
@@ -65,6 +65,7 @@ ResultWith<std::shared_ptr<Service>> Service::Initialize()
 // If a command needs to be called before:
 ResultWith<std::shared_ptr<Service>> Service::Initialize()
 {
+    auto srv = std::make_shared<Service>();
     auto res = srv->GetInitialResult();
     if(res.IsSuccess()) res = srv->ProcessRequest<cmd_id>(args);
 
