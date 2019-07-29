@@ -27,6 +27,7 @@ namespace bio::log
         char *log = new char[sz + 0x20]();
         sprintf(log, "(stdout) %s", (char*)ptr);
         svc::OutputDebugString(log, sz + 0x20);
+        delete[] log;
     }
 
     void SvcStderrLoggingFunction(const void *ptr, size_t sz)
@@ -34,6 +35,7 @@ namespace bio::log
         char *log = new char[sz + 0x20]();
         sprintf(log, "(stderr) %s", (char*)ptr);
         svc::OutputDebugString(log, sz + 0x20);
+        delete[] log;
     }
 
     static bool _inner_EnsureFloraIsInitialized()
