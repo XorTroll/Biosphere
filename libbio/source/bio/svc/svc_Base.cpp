@@ -203,4 +203,39 @@ namespace bio::svc
     {
         return __bio_svc_UnmapSharedMemory(handle, addr, size);
     }
+
+    Result ArbitrateLock(u32 wait_tag, Out<u32> tag_location, u32 self_tag)
+    {
+        return __bio_svc_ArbitrateLock(wait_tag, tag_location.AsPtr(), self_tag);
+    }
+
+    Result ArbitrateUnlock(Out<u32> tag_location)
+    {
+        return __bio_svc_ArbitrateUnlock(tag_location.AsPtr());
+    }
+
+    Result WaitProcessWideKeyAtomic(u32 *key, Out<u32> tag_location, u32 self_tag, u64 timeout)
+    {
+        return __bio_svc_WaitProcessWideKeyAtomic(key, tag_location.AsPtr(), self_tag, timeout);
+    }
+
+    Result SignalProcessWideKey(u32 *key, i32 no)
+    {
+        return __bio_svc_SignalProcessWideKey(key, no);
+    }
+
+    Result GetThreadPriority(u32 handle, Out<u32> priority)
+    {
+        return __bio_svc_GetThreadPriority(priority.AsPtr(), handle);
+    }
+
+    Result CreateThread(void *entrypoint, void *arg, void *stack, i32 priority, i32 cpuid, Out<u32> handle)
+    {
+        return __bio_svc_CreateThread(handle.AsPtr(), entrypoint, arg, stack, priority, cpuid);
+    }
+
+    Result StartThread(u32 handle)
+    {
+        return __bio_svc_StartThread(handle);
+    }
 }

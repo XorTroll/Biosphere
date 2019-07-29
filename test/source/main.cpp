@@ -1,26 +1,22 @@
-
 #include <bio/fs/fs_Types.hpp>
+#include <bio/err/err_Assertion.hpp>
+#include <bio/sm/sm_Port.hpp>
 using namespace bio;
+
+#include <fstream>
+#include <cstdio>
+#include <cstring>
+
 
 int main(int argc, char **argv)
 {
-    fs::Initialize().Assert();
-    fs::MountSdCard("sd").Assert();
+    ipc::ServiceSession srv("demo:no");
+    srv.GetInitialResult().Assert();
 
-    DIR *dp = opendir("sd:");
-    if(dp)
-    {
-        dirent *dt;
-        while(true)
-        {
-            dt = readdir(dp);
-            if(dt == NULL) break;
-            BIO_LOG("sdmc:/%s", dt->d_name);
-        }
-        closedir(dp);
-    }
+    log::SetStdoutLoggingFunction(log::FloraStdoutLoggingFunction);
+    log::SetStderrLoggingFunction(log::FloraStderrLoggingFunction);
 
-    fs::Finalize();
+    BIO_LOG("%s %d", "Hello from Biosphere!", 34);
 
     return 0;
 }

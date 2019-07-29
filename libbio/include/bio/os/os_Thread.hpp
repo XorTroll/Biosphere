@@ -2,6 +2,7 @@
 #pragma once
 #include <bio/bio_Types.hpp>
 #include <sys/reent.h>
+#include <memory>
 
 namespace bio::os
 {
@@ -12,27 +13,38 @@ namespace bio::os
         u32 handle;
         bool owns_stack;
         void *stack;
-        void *stack_mirror;
         size_t stack_size;
         ThreadEntrypoint entrypoint;
         void *arg;
+        void *pthread;
+        u8 zero[0x158]; // Space for thread name
+        char name[0x20];
+        void *nameptr;
         struct _reent reent;
-        void **tls;
     };
 
     struct ThreadSection
     {
-        u32 thread_handle;
-        ThreadBlock *cur_thread;
-        struct _reent *reent;
-        void *tls_segment;
+        u32 ipc_buffer[0x40];
+        u8 unk[0xF8];
+        ThreadBlock *thread;
     };
-
+    
     class Thread
     {
         public:
-            ThreadBlock *GetBaseBlock();
+            Thread(ThreadBlock *raw_thread);
+            ~Thread();
+            static Result Create(ThreadEntrypoint entry, void *entry_arg, size_t stack_size, u32 priority, const char *name, Out<std::shared_ptr<Thread>> out);
+            Result Start();
+            Result Join();
+        private:
+            ThreadBlock *raw;
     };
 
     ThreadSection *GetThreadSection();
+
+    ThreadBlock *GetCurrentThreadBlock();
+    void SetCurrentThreadName(const char *name);
+    u32 GetCurrentThreadHandle();
 }

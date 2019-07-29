@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <bio/bio_Macros.hpp>
+#include <tuple>
 
 namespace bio
 {
@@ -28,6 +29,32 @@ namespace bio
 
         u32 module;
         u32 description;
+    };
+
+    template<typename ...Items>
+    class ResultWith
+    {
+        typedef std::tuple<Result, Items...> ResultTuple;
+
+        public:
+            ResultWith(Result res, Items &&...itms) : items(std::move(std::forward_as_tuple(res, itms...)))
+            {
+            }
+
+            operator Result()
+            {
+                return std::get<0>(items);
+            }
+
+            ResultTuple &Assert()
+            {
+                auto res = std::get<0>(items);
+                res.Assert();
+                return items;
+            }
+
+        private:
+            ResultTuple items;
     };
 
     template<typename T>

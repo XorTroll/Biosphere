@@ -249,7 +249,9 @@ namespace bio::ipc
         public:
             ServiceSession(const char *name);
             const char *GetServiceName();
+            Result GetInitialResult();
         private:
+            Result initial_res;
             char srv_name[0x10];
     };
 }

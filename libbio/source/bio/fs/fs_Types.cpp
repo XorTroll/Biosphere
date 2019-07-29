@@ -453,12 +453,20 @@ extern "C"
 
     ssize_t _write_r(struct _reent *reent, int file, const void *ptr, size_t len)
     {
+        // Special case for stdout/err, handled by bio::log logging functions
         if(file == STDOUT_FILENO)
         {
             extern bio::log::LogWriteFunction global_StdoutLog;
             global_StdoutLog(ptr, len);
             return len;
         }
+        else if(file == STDERR_FILENO)
+        {
+            extern bio::log::LogWriteFunction global_StderrLog;
+            global_StderrLog(ptr, len);
+            return len;
+        }
+
         int vecidx = (file - 200);
         ssize_t ret = 0;
         if(vecidx < bio::fs::_inner_FileList.size())

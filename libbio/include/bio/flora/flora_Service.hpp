@@ -1,9 +1,9 @@
 
 #pragma once
-#include <bio/fatal/fatal_Types.hpp>
+#include <bio/flora/flora_Types.hpp>
 #include <bio/ipc/ipc_Request.hpp>
 
-namespace bio::fatal
+namespace bio::flora
 {
     class Service : public ipc::ServiceSession
     {
@@ -11,6 +11,7 @@ namespace bio::fatal
             Service();
             static ResultWith<std::shared_ptr<Service>> Initialize();
 
-            Result ThrowWithPolicy(Result res, ThrowMode mode);
+            Result WriteOut(char *log, size_t log_size);
+            Result WriteErr(char *log, size_t log_size);
     };
 }

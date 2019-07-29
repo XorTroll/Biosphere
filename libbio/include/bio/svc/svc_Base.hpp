@@ -21,6 +21,7 @@ namespace bio::svc
         u64 args[8];
     };
 
+    static constexpr u32 CurrentThreadPseudoHandle = 0xFFFF8000;
     static constexpr u32 CurrentProcessPseudoHandle = 0xFFFF8001;
 
     Result CloseHandle(u32 handle);
@@ -43,4 +44,11 @@ namespace bio::svc
     Result CreateTransferMemory(Out<u32> handle, void *addr, u64 size, u32 permission);
     Result MapTransferMemory(u32 handle, void *addr, size_t size, u32 perms);
     Result UnmapTransferMemory(u32 handle, void *addr, size_t size);
+    Result ArbitrateLock(u32 wait_tag, Out<u32> tag_location, u32 self_tag);
+    Result ArbitrateUnlock(Out<u32> tag_location);
+    Result WaitProcessWideKeyAtomic(u32 *key, Out<u32> tag_location, u32 self_tag, u64 timeout);
+    Result SignalProcessWideKey(u32 *key, i32 no);
+    Result GetThreadPriority(u32 handle, Out<u32> priority);
+    Result CreateThread(void *entrypoint, void *arg, void *stack, i32 priority, i32 cpuid, Out<u32> handle);
+    Result StartThread(u32 handle);
 }

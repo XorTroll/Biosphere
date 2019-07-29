@@ -11,12 +11,10 @@ namespace bio::ipc
 
     Session::Session(u32 handle) : handle(handle), type(SessionType::Normal), object_id(UINT32_MAX)
     {
-        BIO_LOG("Creating session with handle %d", handle);
     }
 
     Session::Session(Session &parent, u32 object_id) : handle(parent.GetHandle()), type(SessionType::DomainSubService), object_id(object_id)
     {
-        BIO_LOG("Creating session with parent handle %d and object ID %d", parent.GetHandle(), object_id);
     }
 
     Session::Session(u32 parent_handle, u32 object_id) : handle(parent_handle), type(SessionType::DomainSubService), object_id(object_id)
@@ -79,7 +77,6 @@ namespace bio::ipc
 
     Session::~Session()
     {
-        BIO_LOG("Disposing session with handle %d and object ID %d", handle, object_id);
         Close();
     }
 
@@ -276,13 +273,17 @@ namespace bio::ipc
     ServiceSession::ServiceSession(const char *name)
     {
         strcpy(srv_name, name);
-        sm::Initialize().Assert();
-        sm::GetService(name, handle).Assert();
-        BIO_LOG("Creating session from service '%s' -> handle %d", name, handle);
+        initial_res = sm::Initialize();
+        if(initial_res.IsSuccess()) initial_res = sm::GetService(name, handle);
     }
 
     const char *ServiceSession::GetServiceName()
     {
         return srv_name;
+    }
+
+    Result ServiceSession::GetInitialResult()
+    {
+        return initial_res;
     }
 }

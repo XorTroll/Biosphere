@@ -6,9 +6,10 @@ namespace bio::fatal
     {
     }
 
-    std::shared_ptr<Service> Service::Initialize()
+    ResultWith<std::shared_ptr<Service>> Service::Initialize()
     {
-        return std::make_shared<Service>();
+        auto srv = std::make_shared<Service>();
+        return ResultWith<std::shared_ptr<Service>>(srv->GetInitialResult(), std::move(srv));
     }
 
     Result Service::ThrowWithPolicy(Result res, ThrowMode mode)

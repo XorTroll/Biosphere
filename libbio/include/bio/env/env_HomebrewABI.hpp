@@ -30,7 +30,7 @@ namespace bio::env
 
     enum class ABIEntryFlags
     {
-        Mandatory = (1 << 0)
+        Mandatory = BIO_BITMASK(0),
     };
 
     inline ABIEntryFlags operator|(ABIEntryFlags l, ABIEntryFlags r)

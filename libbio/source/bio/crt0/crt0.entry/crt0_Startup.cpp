@@ -18,7 +18,7 @@
 #include <sys/stat.h>
 #include <bio/env/env_HomebrewABI.hpp>
 #include <bio/os/os_Memory.hpp>
-
+#include <bio/os/os_Finalize.hpp>
 #include <bio/fs/fs_Types.hpp>
 
 extern "C"
@@ -91,6 +91,7 @@ bio::Result __bio_crt0_ProcessRegion(bio::Out<bio::os::VirtualRegion> region, bi
 char **global_Argv = NULL;
 int global_Argc = 0;
 void *global_NroRomImage = NULL;
+bio::os::ThreadBlock global_MainThreadBlock;
 
 void __bio_crt0_ProcessArgv(void *argv_ptr)
 {
@@ -226,21 +227,22 @@ bio::u64 BIO_WEAK __bio_crt0_GetHeapSize()
 
 /*
 
-CRT0 entrypoint
+Biosphere's CRT0 entrypoint (only for NSO/executable NRO)
 
 Startup:
 
 1 - Relocation
 2 - TOFINISH - HBABI config processing (if NRO)
 3 - TOFINISH - memory processing, for virtual memory
-4 - heap processing
-5 - argv processing
+4 - thread section processing
+5 - heap processing
+6 - TOFINISH - argv processing
 
 Execution:
 
-1 - TODO - high level (services?) initialization not yet decided
+1 - TODO - high level (services?) initialization (not yet decided...)
 2 - main()
-3 - TODO - cleanup of possible IPC/mem leaks
+3 - cleanup of possible IPC/mem leaks
 4 - return exit code and exit
 
 */
@@ -296,6 +298,18 @@ void BIO_WEAK __bio_crt0_Startup(void *config, bio::u64 thread_handle, void *asl
 	__bio_crt0_ProcessRegion(global_Regions[static_cast<bio::u32>(bio::os::Region::Heap)], 4, 5).Assert();
 	__bio_crt0_ProcessRegion(global_Regions[static_cast<bio::u32>(bio::os::Region::NewStack)], 2, 3).Assert();
 
+	auto th_section = bio::os::GetThreadSection();
+	memset(bio::os::GetThreadSection(), 0, 0x200);
+	
+	memset(&global_MainThreadBlock, 0, sizeof(global_MainThreadBlock));
+	global_MainThreadBlock.handle = (bio::u32)thread_handle;
+	global_MainThreadBlock.owns_stack = false;
+	global_MainThreadBlock.arg = NULL;
+	global_MainThreadBlock.pthread = NULL;
+	strcpy(global_MainThreadBlock.name, "bio.MainThread");
+	_REENT_INIT_PTR(&global_MainThreadBlock.reent);
+	bio::os::GetThreadSection()->thread = &global_MainThreadBlock;
+
 	// If hbloader didn't give us a base heap, get the default one
 	auto def_heap = __bio_crt0_GetHeapSize();
 	if((global_HeapSize == 0) || _inner_UserOverrideHeap)
@@ -319,6 +333,7 @@ int BIO_WEAK __bio_crt0_Execution()
 {
 	// What shall we initialize here...?
 	int ret = main(global_Argc, global_Argv);
+	bio::os::CallFinalizeFunctions(); // This should only be called here!
 	if(global_NroRomImage != NULL) operator delete(global_NroRomImage); // If we allocated the romfs image from NRO, dispose it
 	return ret;
 }
