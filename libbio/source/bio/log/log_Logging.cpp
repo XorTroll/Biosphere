@@ -42,7 +42,7 @@ namespace bio::log
     {
         if(!_inner_Initialized)
         {
-            auto &[res, flora] = flora::Service::Initialize().Assert();
+            auto [res, flora] = flora::Service::Initialize();
             if(res.IsSuccess())
             {
                 _inner_FloraSession = std::move(flora);

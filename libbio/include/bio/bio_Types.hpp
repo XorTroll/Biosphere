@@ -32,30 +32,7 @@ namespace bio
     };
 
     template<typename ...Items>
-    class ResultWith
-    {
-        typedef std::tuple<Result, Items...> ResultTuple;
-
-        public:
-            ResultWith(Result res, Items &&...itms) : items(std::move(std::forward_as_tuple(res, itms...)))
-            {
-            }
-
-            operator Result()
-            {
-                return std::get<0>(items);
-            }
-
-            ResultTuple &Assert()
-            {
-                auto res = std::get<0>(items);
-                res.Assert();
-                return items;
-            }
-
-        private:
-            ResultTuple items;
-    };
+    using ResultWith = std::tuple<Result, Items...>;
 
     template<typename T>
     class Out
@@ -91,4 +68,10 @@ namespace bio
     };
 
     static const u32 ResultModule = 420;
+
+    template<typename ...Items>
+    inline ResultWith<Items...> MakeResultWith(Result res, Items &&... items)
+    {
+        return std::forward_as_tuple(res, items...);
+    }
 }

@@ -8,7 +8,7 @@ namespace bio::ro
     {
         public:
             Service();
-            static std::shared_ptr<Service> Initialize();
+            static ResultWith<std::shared_ptr<Service>> Initialize();
             Result LoadNro(void *nro_address, u64 nro_size, void *bss_address, size_t bss_size, Out<u64> nro_addr);
             Result UnloadNro(void *nro_address);
             Result LoadNrr(void *nrr_address, u64 nrr_size);

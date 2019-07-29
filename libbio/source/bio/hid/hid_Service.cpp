@@ -11,9 +11,10 @@ namespace bio::hid
     {
     }
 
-    std::shared_ptr<Service> Service::Initialize()
+    ResultWith<std::shared_ptr<Service>> Service::Initialize()
     {
-        return std::make_shared<Service>();
+        auto srv = std::make_shared<Service>();
+        return MakeResultWith(srv->GetInitialResult(), std::move(srv));
     }
 
     Result Service::CreateAppletResource(u64 aruid, Out<std::shared_ptr<AppletResource>> out_res)

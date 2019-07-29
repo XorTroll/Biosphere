@@ -35,7 +35,7 @@ namespace bio::os
         public:
             Thread(ThreadBlock *raw_thread);
             ~Thread();
-            static Result Create(ThreadEntrypoint entry, void *entry_arg, size_t stack_size, u32 priority, const char *name, Out<std::shared_ptr<Thread>> out);
+            static ResultWith<std::shared_ptr<Thread>> Create(ThreadEntrypoint entry, void *entry_arg, size_t stack_size, u32 priority, const char *name);
             Result Start();
             Result Join();
         private:

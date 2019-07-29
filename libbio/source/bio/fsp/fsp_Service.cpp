@@ -131,12 +131,16 @@ namespace bio::fsp
     {
     }
 
-    std::shared_ptr<Service> Service::Initialize()
+    ResultWith<std::shared_ptr<Service>> Service::Initialize()
     {
         auto srv = std::make_shared<Service>();
-        srv->ProcessRequest<1>(ipc::InProcessId(), ipc::InRaw<u64>(0)).Assert();
-        srv->ConvertToDomain().Assert();
-        return srv;
+        auto res = srv->GetInitialResult();
+        if(res.IsSuccess())
+        {
+            res = srv->ProcessRequest<1>(ipc::InProcessId(), ipc::InRaw<u64>(0));
+            if(res.IsSuccess()) res = srv->ConvertToDomain();
+        }
+        return MakeResultWith(res, std::move(srv));
     }
 
     Result Service::OpenDataFileSystemByCurrentProcess(Out<std::shared_ptr<FileSystem>> fs)

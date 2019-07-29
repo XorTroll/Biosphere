@@ -56,3 +56,10 @@ include $(BIOSPHERE_ROOT)/compile/Config.mk
 %.nso: %.nss
 	@$(BIOSPHERE_ROOT)/utils/ld/linkle nso $< $@
 	@echo built ... $(notdir $@)
+
+%.nsp: %.nso
+	@mkdir $@
+	@echo generating ... $(notdir $@)
+	@cp $(BIOSPHERE_ROOT)/libbio/lib/libbio-sdk.nso  $@/sdk
+	@mv $< $@/main
+	@touch rtld.stub

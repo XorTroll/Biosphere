@@ -16,7 +16,7 @@ namespace bio::hid
     {
         public:
             Service();
-            static std::shared_ptr<Service> Initialize();
+            static ResultWith<std::shared_ptr<Service>> Initialize();
 
             Result CreateAppletResource(u64 aruid, Out<std::shared_ptr<AppletResource>> out_res);
             Result SetSupportedNpadStyleSet(u64 aruid, u32 npad_style_tag);

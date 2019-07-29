@@ -1,6 +1,6 @@
 TARGET := test
 
-INCLUDE	:=	include include/sys
+INCLUDE	:=	include
 SOURCE	:=	source
 
 ICON_JPG	:=	icon.jpg

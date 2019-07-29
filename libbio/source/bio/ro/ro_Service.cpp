@@ -6,11 +6,12 @@ namespace bio::ro
     {
     }
 
-    std::shared_ptr<Service> Service::Initialize()
+    ResultWith<std::shared_ptr<Service>> Service::Initialize()
     {
         auto srv = std::make_shared<Service>();
-        srv->ProcessRequest<4>(ipc::InProcessId(), ipc::InHandle<ipc::HandleMode::Copy>(svc::CurrentProcessPseudoHandle)).Assert();
-        return srv;
+        auto res = srv->GetInitialResult();
+        if(res.IsSuccess()) res = srv->ProcessRequest<4>(ipc::InProcessId(), ipc::InHandle<ipc::HandleMode::Copy>(svc::CurrentProcessPseudoHandle));
+        return MakeResultWith(res, std::move(srv));
     }
 
     Result Service::LoadNro(void *nro_address, u64 nro_size, void *bss_address, size_t bss_size, Out<u64> nro_addr)

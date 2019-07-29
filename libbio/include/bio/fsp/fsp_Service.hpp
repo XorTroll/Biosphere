@@ -50,7 +50,7 @@ namespace bio::fsp
     {
         public:
             Service();
-            static std::shared_ptr<Service> Initialize();
+            static ResultWith<std::shared_ptr<Service>> Initialize();
             
             Result OpenDataFileSystemByCurrentProcess(Out<std::shared_ptr<FileSystem>> fs);
             Result OpenSdCardFileSystem(Out<std::shared_ptr<FileSystem>> fs);

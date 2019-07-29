@@ -40,12 +40,13 @@ namespace bio::os
         delete raw;
     }
 
-    Result Thread::Create(ThreadEntrypoint entry, void *entry_arg, size_t stack_size, u32 priority, const char *name, Out<std::shared_ptr<Thread>> out)
+    ResultWith<std::shared_ptr<Thread>> Thread::Create(ThreadEntrypoint entry, void *entry_arg, size_t stack_size, u32 priority, const char *name)
     {
+        std::shared_ptr<Thread> thread;
         ThreadBlock *block = new ThreadBlock;
         auto res = _inner_CreateThreadBlock(block, entry, entry_arg, stack_size, priority, -2, name);
-        if(res.IsSuccess()) (std::shared_ptr<Thread>&)out = std::make_shared<Thread>(block);
-        return res;
+        if(res.IsSuccess()) thread = std::make_shared<Thread>(block);
+        return MakeResultWith(res, std::move(thread));
     }
 
     Result Thread::Start()

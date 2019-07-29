@@ -25,7 +25,7 @@ namespace bio::err
 
     void FatalAssertionFunction(Result res)
     {
-        auto &[rc, fatalsrv] = fatal::Service::Initialize().Assert();
+        auto [rc, fatalsrv] = fatal::Service::Initialize();
         if(rc.IsSuccess()) fatalsrv->ThrowWithPolicy(res, fatal::ThrowMode::ErrorScreen);
     }
 

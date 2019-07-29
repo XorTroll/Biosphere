@@ -13,33 +13,32 @@ int main()
 
     fs::Initialize().Assert();
     fs::MountSdCard("sdcard").Assert();
-
-    ld::Initialize();
-
-    u64 tmpptr = 0;
+    ld::Initialize().Assert();
 
     {
-        std::shared_ptr<ld::Module> module; // bio::ld::Module is a wrapper for dlopen/dlsym/dlclose
-        ld::LoadModule("sdcard:/demo.lib.nro", false, module).Assert();
+        // bio::ld::Module is a wrapper for dlopen/dlsym/dlclose
+        auto [res, module] = ld::LoadModule("sdcard:/demo.lib.nro", false);
 
-        BIO_LOG("%s", "Module loaded (ld::LoadModule)");
-
-        auto get_mod_func = module->ResolveSymbol<const char*(*)()>("GetModuleName");
-        if(get_mod_func)
+        if(res.IsSuccess())
         {
-            BIO_LOG("Function ptr (GetModuleName): %p", get_mod_func);
-            BIO_LOG("Demo text: %s", get_mod_func());
-        }
-        else BIO_LOG("Error -> %s", dlerror());
+            BIO_LOG("%s", "Module loaded (ld::LoadModule)");
 
-        auto say_hello_func = module->ResolveSymbol<void(*)()>("SayHello");
-        tmpptr = (u64)say_hello_func;
-        if(say_hello_func)
-        {
-            BIO_LOG("Function ptr (SayHello): %p", say_hello_func);
-            say_hello_func();
+            auto [res2, get_mod_func] = module->ResolveSymbol<const char*(*)()>("GetModuleName");
+            if(res2.IsSuccess())
+            {
+                BIO_LOG("Function ptr (GetModuleName): %p", get_mod_func);
+                BIO_LOG("Demo text: %s", get_mod_func());
+            }
+            else BIO_LOG("Error -> %s", dlerror());
+
+            auto [res3, say_hello_func] = module->ResolveSymbol<void(*)()>("SayHello");
+            if(res3.IsSuccess())
+            {
+                BIO_LOG("Function ptr (SayHello): %p", say_hello_func);
+                say_hello_func();
+            }
+            else BIO_LOG("Error -> %s", dlerror()); // Normally would log results, but with dynamic loading dlerror will probably have the result
         }
-        else BIO_LOG("Error -> %s", dlerror());
 
         // Module object is disposed by RAII
     }

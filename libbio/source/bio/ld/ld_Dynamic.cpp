@@ -428,12 +428,17 @@ namespace bio::ld
 
     Result Initialize()
     {
+        Result res;
         if(!_inner_Initialized)
         {
-            _inner_RoSession = ro::Service::Initialize();
-            _inner_Initialized = true;
+            auto [res, rosrv] = ro::Service::Initialize();
+            if(res.IsSuccess())
+            {
+                _inner_RoSession = std::move(rosrv);
+                _inner_Initialized = true;
+            }
         }
-        return 0;
+        return res;
     }
 
     bool IsInitialized()
@@ -456,8 +461,8 @@ namespace bio::ld
     }
 }
 
-static char dlerror_buf[0x200];
-static bio::Result dl_latest_res;
+static char dlerror_buf[0x200] = {0};
+static bio::Result dl_latest_res = 0;
 
 static void _inner_UpdateDlerror(const char *error, ...)
 {
@@ -470,16 +475,17 @@ static void _inner_UpdateDlerror(const char *error, ...)
 
 void *dlopen(const char *path, int flags)
 {
+    if(path == NULL)
+    {
+		_inner_UpdateDlerror("Invalid input NRO path");
+		return NULL;
+	}
+
 	bio::ld::ModuleBlock *module = new bio::ld::ModuleBlock;
 	if(module == NULL)
     {
         _inner_UpdateDlerror("Could not allocate memory");
 		return module;
-	}
-	if(path == NULL)
-    {
-		_inner_UpdateDlerror("Invalid input NRO path");
-		return NULL;
 	}
 
     strcpy(module->input.name, path);
@@ -532,6 +538,7 @@ void *dlopen(const char *path, int flags)
 void *dlsym(void *ptr, const char *symbol)
 {
 	bio::ld::ModuleBlock *module = (bio::ld::ModuleBlock*)ptr;
+    if(module == NULL) return NULL;
 
 	Elf64_Sym *def;
 	bio::ld::ModuleBlock *def_mod;
@@ -573,23 +580,22 @@ namespace bio::ld
         dlclose(raw_module);
     }
 
-    void *Module::ResolveSymbolPtr(const char *name)
+    ResultWith<void*> Module::ResolveSymbolPtr(const char *name)
     {
-        return dlsym(raw_module, name);
+        auto ptr = dlsym(raw_module, name);
+        Result res;
+        if(ptr == NULL) res = dl_latest_res;
+        return MakeResultWith(res, ptr);
     }
 
-    Result LoadModule(const char *path, bool global, Out<std::shared_ptr<Module>> module)
+    ResultWith<std::shared_ptr<Module>> LoadModule(const char *path, bool global)
     {
         int flags = RTLD_LOCAL;
         if(global) flags = RTLD_GLOBAL;
 
         bio::ld::ModuleBlock *raw_module = (bio::ld::ModuleBlock*)dlopen(path, flags);
-        if(raw_module != NULL)
-        {
-            (std::shared_ptr<Module>&)module = std::make_shared<Module>(raw_module);
-            return dl_latest_res;
-        }
+        std::shared_ptr<Module> mod = std::make_shared<Module>(raw_module);
 
-        return 0;
+        return MakeResultWith(dl_latest_res, std::move(mod));
     }
 }

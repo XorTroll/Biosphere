@@ -61,19 +61,20 @@ namespace bio::ld
     void Finalize();
     std::shared_ptr<ro::Service> &GetRoSession();
 
+    Result GetLatestDlResult();
+
     class Module
     {
         public:
             Module(ModuleBlock *raw);
             ~Module();
-            void *ResolveSymbolPtr(const char *name);
+            ResultWith<void*> ResolveSymbolPtr(const char *name);
 
             template<typename F>
-            F ResolveSymbol(const char *name)
+            ResultWith<F> ResolveSymbol(const char *name)
             {
-                void *ptr = ResolveSymbolPtr(name);
-                if(ptr == NULL) return nullptr;
-                return reinterpret_cast<F>(ptr);
+                auto [res, ptr] = ResolveSymbolPtr(name);
+                return MakeResultWith(res, reinterpret_cast<F>(ptr));
             }
 
         private:
@@ -84,5 +85,5 @@ namespace bio::ld
     static constexpr u32 NRR0 = 0x3052524E;
     static constexpr u32 MOD0 = 0x30444F4D;
 
-    Result LoadModule(const char *path, bool global, Out<std::shared_ptr<Module>> module);
+    ResultWith<std::shared_ptr<Module>> LoadModule(const char *path, bool global);
 }

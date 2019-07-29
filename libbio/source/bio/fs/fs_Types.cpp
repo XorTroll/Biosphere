@@ -282,9 +282,17 @@ namespace bio::fs
 
     Result Initialize()
     {
-        _inner_FsSession = fsp::Service::Initialize();
-        _inner_Initialized = true;
-        return 0;
+        Result res;
+        if(!_inner_Initialized)
+        {
+            auto [res, fssrv] = fsp::Service::Initialize();
+            if(res.IsSuccess())
+            {
+                _inner_FsSession = std::move(fssrv);
+                _inner_Initialized = true;
+            }
+        }
+        return res;
     }
 
     bool IsInitialized()

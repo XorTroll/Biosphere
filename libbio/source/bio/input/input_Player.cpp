@@ -52,33 +52,37 @@ namespace bio::input
     Result Initialize(u64 aruid)
     {
         if(IsInitialized()) return 0;
-        _inner_HidSession = hid::Service::Initialize();
-        auto res = _inner_HidSession->CreateAppletResource(aruid, _inner_AppletResource);
+        auto [res, hidsrv] = hid::Service::Initialize();
         if(res.IsSuccess())
         {
-            u32 tmphandle;
-            res = _inner_AppletResource->GetSharedMemoryHandle(tmphandle);
+            _inner_HidSession = std::move(hidsrv);
+            auto res = _inner_HidSession->CreateAppletResource(aruid, _inner_AppletResource);
             if(res.IsSuccess())
             {
-                _inner_HidSharedMem = std::make_shared<os::SharedMemory>(tmphandle, 0x40000, Permission::Read);
-                res = _inner_HidSharedMem->Map();
+                u32 tmphandle;
+                res = _inner_AppletResource->GetSharedMemoryHandle(tmphandle);
                 if(res.IsSuccess())
                 {
-                    res = _inner_HidSession->ActivateNpad(aruid);
+                    _inner_HidSharedMem = std::make_shared<os::SharedMemory>(tmphandle, 0x40000, Permission::Read);
+                    res = _inner_HidSharedMem->Map();
                     if(res.IsSuccess())
                     {
-                        res = _inner_HidSession->SetSupportedNpadStyleSet(aruid, (static_cast<u32>(hid::NpadStyleTag::ProController) | static_cast<u32>(hid::NpadStyleTag::Handheld) | static_cast<u32>(hid::NpadStyleTag::JoyconPair) | static_cast<u32>(hid::NpadStyleTag::JoyconLeft) | static_cast<u32>(hid::NpadStyleTag::JoyconRight)));
+                        res = _inner_HidSession->ActivateNpad(aruid);
                         if(res.IsSuccess())
                         {
-                            u32 controllers[9] = { 0, 1, 2, 3, 4, 5, 6, 7, 0x20 };
-                            res = _inner_HidSession->SetSupportedNpadIdType(aruid, controllers, 9);
+                            res = _inner_HidSession->SetSupportedNpadStyleSet(aruid, (static_cast<u32>(hid::NpadStyleTag::ProController) | static_cast<u32>(hid::NpadStyleTag::Handheld) | static_cast<u32>(hid::NpadStyleTag::JoyconPair) | static_cast<u32>(hid::NpadStyleTag::JoyconLeft) | static_cast<u32>(hid::NpadStyleTag::JoyconRight)));
                             if(res.IsSuccess())
                             {
-                                _inner_Initialized = true;
-                                for(u32 i = 0; i < 8; i++)
+                                u32 controllers[9] = { 0, 1, 2, 3, 4, 5, 6, 7, 0x20 };
+                                res = _inner_HidSession->SetSupportedNpadIdType(aruid, controllers, 9);
+                                if(res.IsSuccess())
                                 {
-                                    auto res2 = _inner_HidSession->SetNpadJoyAssignmentModeDual(aruid, i);
-                                    if(res2.IsFailure()) break;
+                                    _inner_Initialized = true;
+                                    for(u32 i = 0; i < 8; i++)
+                                    {
+                                        auto res2 = _inner_HidSession->SetNpadJoyAssignmentModeDual(aruid, i);
+                                        if(res2.IsFailure()) break;
+                                    }
                                 }
                             }
                         }
