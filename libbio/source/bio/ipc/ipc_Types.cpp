@@ -1,4 +1,5 @@
 #include <bio/ipc/ipc_Types.hpp>
+#include <bio/os/os_TLS.hpp>
 #include <cstdlib>
 
 namespace bio::ipc
@@ -16,5 +17,14 @@ namespace bio::ipc
     BufferInfo MakeSmart(size_t buf_size, u32 index)
     {
         return { BufferMode::Smart, 0, index, buf_size };
+    }
+
+    void CloseSessionHandle(u32 handle)
+    {
+        u32 *tls = (u32*)os::GetTLS();
+        tls[0] = 2;
+        tls[1] = 0;
+        svc::SendSyncRequest(handle);
+        svc::CloseHandle(handle);
     }
 }

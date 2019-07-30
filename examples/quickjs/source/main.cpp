@@ -1,8 +1,9 @@
-#include <bio/fs/fs_Types.hpp>
-using namespace bio;
+#include <cstring>
 
 extern "C"
 {
+    // Grabbed from QuickJS demos (qjs/qjsc)
+
     #include "quickjs/cutils.h"
     #include "quickjs/quickjs-libc.h"
     #include "quickjs/quickjs.h"
@@ -56,17 +57,12 @@ extern "C"
     }
 }
 
-
-
 int main()
 {
-    fs::Initialize().Assert();
-    fs::MountSdCard("sd").Assert();
-
     JSRuntime *rt = JS_NewRuntime();
     JSContext *ctx = JS_NewContext(rt);
 
     std_init(ctx);
 
-    EVAL_CODE(ctx, "std.printf('Hello from QuickJS!');"); // Will call C's printf, thus print to SVC output
+    EVAL_CODE(ctx, "std.printf('Hello from Biosphere and QuickJS!');"); // Will call C's printf, thus log that to stdout
 }

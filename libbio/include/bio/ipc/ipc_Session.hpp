@@ -227,7 +227,7 @@ namespace bio::ipc
         private:
             void ProcessArgument(RequestData &data, u8 part)
             {
-                // Support empty parameter packs, aka no arguments for request!
+                // Support empty parameter packs, aka no arguments for request
             }
             
             template<typename Argument>

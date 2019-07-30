@@ -1,6 +1,7 @@
 
 #pragma once
 #include <bio/ipc/ipc_Request.hpp>
+#include <bio/sm/sm_Results.hpp>
 
 namespace bio::sm
 {

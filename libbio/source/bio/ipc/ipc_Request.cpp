@@ -2,10 +2,6 @@
 
 namespace bio::ipc
 {
-    void Simple::Process(RequestData &data, u8 part)
-    {
-    }
-
     void InProcessId::Process(RequestData &data, u8 part)
     {
         switch(part)

@@ -110,9 +110,10 @@ namespace bio::ipc
         bool requester_session_is_domain;
     };
 
-    struct RequestArgument
+    class RequestArgument
     {
-        virtual void Process(RequestData &data, u8 part) = 0;
+        public:
+            virtual void Process(RequestData &data, u8 part) = 0;
     };
 
     BufferInfo MakeNormal(u32 type);
@@ -120,5 +121,7 @@ namespace bio::ipc
     BufferInfo MakeSmart(size_t buf_size, u32 index);
 
     static constexpr u32 SFCI = 0x49434653;
-    static constexpr u32 SFCO = 0x4f434653;
+    static constexpr u32 SFCO = 0x4F434653;
+
+    void CloseSessionHandle(u32 handle);
 }

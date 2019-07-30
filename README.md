@@ -12,6 +12,12 @@ Biosphere's homebrew library, high-level, 0% C and almost 100% C++ (except some 
 
 Building this library will generate 3 library objects: `libbio-NSO.a`,`libbio-NRO.a` and `libbio-libNRO.a`.
 
+## fauna and flora
+
+`fauna` and `flora` are the two tools used for console <-> PC logging.
+
+### fauna
+
 ## Building
 
 Clone with `git clone --recurse-submodules` and run `make`.

@@ -21,7 +21,7 @@ namespace bio::sm
             u32 dummyfsphandle;
             if(GetService("fsp-srv", dummyfsphandle).IsSuccess())
             {
-                ipc::Session(dummyfsphandle).Close();
+                ipc::CloseSessionHandle(dummyfsphandle);
                 _inner_Initialized = true;
                 os::AddFinalizeFunction(sm::Finalize);
                 return 0;
@@ -69,12 +69,12 @@ namespace bio::sm
 
     Result GetService(const char *name, Out<u32> handle)
     {
-        if(!IsServiceRegistered(name)) return 0xdead; // Auto-detection to prevent hangs
         return _inner_SmPort->ProcessRequest<1>(ipc::InRaw<u64>(_inner_ConvertServiceName(name)), ipc::InRaw<u64>(0), ipc::InRaw<u64>(0), ipc::OutHandle<0>(static_cast<u32&>(handle)));
     }
 
     Result RegisterService(const char *name, bool is_light, u32 max_sessions, Out<u32> handle)
     {
+        if(!IsServiceRegistered(name)) return ResultServiceNotPresent;
         return _inner_SmPort->ProcessRequest<2>(ipc::InRaw<u64>(_inner_ConvertServiceName(name)), ipc::InRaw<u32>((u32)is_light), ipc::InRaw<u32>(max_sessions), ipc::OutHandle<0>(static_cast<u32&>(handle)));
     }
 
@@ -89,7 +89,7 @@ namespace bio::sm
         auto res = RegisterService(name, false, 1, dummyhandle);
         if(res.IsFailure()) return true;
         UnregisterService(name);
-        ipc::Session(dummyhandle).Close();
+        ipc::CloseSessionHandle(dummyhandle);
         return false;
     }
 }

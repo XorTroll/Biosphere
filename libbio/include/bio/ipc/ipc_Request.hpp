@@ -4,262 +4,288 @@
 
 namespace bio::ipc
 {
-    struct Simple : RequestArgument
-    {
-        void Process(RequestData &data, u8 part) override;
-    };
-
     template<typename T>
-    struct InRaw : RequestArgument
+    class InRaw : public RequestArgument
     {
-        T value;
-        u64 offset;
-
-        InRaw(T type) : value(type), offset(0)
-        {
-        }
-
-        void Process(RequestData &data, u8 part) override
-        {
-            switch(part)
+        public:
+            InRaw(T type) : value(type), offset(0)
             {
-                case 0:
-                    data.in_raw_size += (alignof(T) - 1);
-                    data.in_raw_size -= (data.in_raw_size % alignof(T));
-                    offset = data.in_raw_size;
-                    data.in_raw_size += sizeof(T);
-                    break;
-                case 2:
-                    *((T*)(((u8*)data.in_raw) + offset)) = value;
-                    break;
             }
-        }
+
+            virtual void Process(RequestData &data, u8 part) override
+            {
+                switch(part)
+                {
+                    case 0:
+                        data.in_raw_size += (alignof(T) - 1);
+                        data.in_raw_size -= (data.in_raw_size % alignof(T));
+                        offset = data.in_raw_size;
+                        data.in_raw_size += sizeof(T);
+                        break;
+                    case 2:
+                        *((T*)(((u8*)data.in_raw) + offset)) = value;
+                        break;
+                }
+            }
+
+        private:
+            T value;
+            u64 offset;
     };
 
-    struct InProcessId : RequestArgument
+    class InProcessId : public RequestArgument
     {
-        void Process(RequestData &data, u8 part) override;
+        public:
+            virtual void Process(RequestData &data, u8 part) override;
     };
 
     template<HandleMode HMode>
-    struct InHandle : RequestArgument
+    class InHandle : public RequestArgument
     {
-        u32 handle;
-        HandleMode mode;
-
-        InHandle(u32 in_handle) : handle(in_handle), mode(HMode)
-        {
-        }
-
-        void Process(RequestData &data, u8 part) override
-        {
-            switch(part)
+        public:
+            InHandle(u32 in_handle) : handle(in_handle), mode(HMode)
             {
-                case 0:
-                    switch(mode)
-                    {
-                        case HandleMode::Copy:
-                            data.in_copy_hs[data.in_copy_hs_size] = handle;
-                            data.in_copy_hs_size++;
-                            break;
-                        case HandleMode::Move:
-                            data.in_move_hs[data.in_move_hs_size] = handle;
-                            data.in_move_hs_size++;
-                            break;
-                    }
-                    break;
             }
-        }
+
+            virtual void Process(RequestData &data, u8 part) override
+            {
+                switch(part)
+                {
+                    case 0:
+                        switch(mode)
+                        {
+                            case HandleMode::Copy:
+                                data.in_copy_hs[data.in_copy_hs_size] = handle;
+                                data.in_copy_hs_size++;
+                                break;
+                            case HandleMode::Move:
+                                data.in_move_hs[data.in_move_hs_size] = handle;
+                                data.in_move_hs_size++;
+                                break;
+                        }
+                        break;
+                }
+            }
+
+        private:
+            u32 handle;
+            HandleMode mode;
     };
 
     template<typename S>
-    struct InSession : RequestArgument
+    class InSession : public RequestArgument
     {
-        static_assert(std::is_base_of<Session, S>::value, "OutSession object must derive from bio::ipc::Session!");
+        static_assert(std::is_base_of<Session, S>::value, "InSession object must inherit from bio::ipc::Session!");
 
-        std::shared_ptr<S> s;
-
-        InSession(std::shared_ptr<S> &session) : s(session)
-        {
-        }
-
-        void Process(RequestData &data, u8 part) override
-        {
-            switch(part)
+        public:
+            InSession(std::shared_ptr<S> &session) : s(session)
             {
-                case 0:
-                    if(s->IsDomain() || s->IsDomainSubService())
-                    {
-                        data.in_object_ids[data.in_object_ids_size] = s->GetObjectId();
-                        data.in_object_ids_size++;
-                    }
-                    break;
             }
-        }
+
+            virtual void Process(RequestData &data, u8 part) override
+            {
+                switch(part)
+                {
+                    case 0:
+                        if(s->IsDomain() || s->IsDomainSubService())
+                        {
+                            data.in_object_ids[data.in_object_ids_size] = s->GetObjectId();
+                            data.in_object_ids_size++;
+                        }
+                        break;
+                }
+            }
+
+        private:
+            std::shared_ptr<S> s;
     };
 
-    struct InObjectId : RequestArgument
+    class InObjectId : public RequestArgument
     {
-        u32 obj_id;
+        public:
+            InObjectId(u32 object_id);
+            virtual void Process(RequestData &data, u8 part) override;
 
-        InObjectId(u32 object_id);
-        void Process(RequestData &data, u8 part) override;
+        private:
+            u32 obj_id;
     };
 
-    struct InBuffer : RequestArgument
+    class InBuffer : public RequestArgument
     {
-        Buffer buf;
+        public:
+            InBuffer(const void *data, size_t size, u32 type);
+            virtual void Process(RequestData &data, u8 part) override;
 
-        InBuffer(const void *data, size_t size, u32 type);
-        void Process(RequestData &data, u8 part) override;
+        private:
+            Buffer buf;
     };
 
-    struct InStaticBuffer : RequestArgument
+    class InStaticBuffer : public RequestArgument
     {
-        Buffer buf;
+        public:
+            InStaticBuffer(const void *data, size_t Size, u32 Index);
+            virtual void Process(RequestData &data, u8 part) override;
 
-        InStaticBuffer(const void *data, size_t Size, u32 Index);
-        void Process(RequestData &data, u8 part) override;
+        private:
+            Buffer buf;
     };
 
-    struct InSmartBuffer : RequestArgument
+    class InSmartBuffer : public RequestArgument
     {
-        Buffer buf_normal;
-        Buffer buf_static;
+        public:
+            InSmartBuffer(const void *data, size_t size, u32 index, u64 expected_size);
+            virtual void Process(RequestData &data, u8 part) override;
 
-        InSmartBuffer(const void *data, size_t size, u32 index, u64 expected_size);
-        void Process(RequestData &data, u8 part) override;
+        private:
+            Buffer buf_normal;
+            Buffer buf_static;
     };
 
     template<typename T>
-    struct OutRaw : RequestArgument
+    class OutRaw : public RequestArgument
     {
-        T &value;
-        u64 offset;
-
-        OutRaw(T &ref) : value(ref), offset(0)
-        {
-        }
-
-        void Process(RequestData &data, u8 part) override
-        {
-            switch(part)
+        public:
+            OutRaw(T &ref) : value(ref), offset(0)
             {
-                case 3:
-                    data.out_raw_size += (alignof(T) - 1);
-                    data.out_raw_size -= (data.out_raw_size % alignof(T));
-                    offset = data.out_raw_size;
-                    data.out_raw_size += sizeof(T);
-                    break;
-                case 5:
-                    value = *((T*)(((u8*)data.out_raw) + offset));
-                    break;
             }
-        }
+
+            virtual void Process(RequestData &data, u8 part) override
+            {
+                switch(part)
+                {
+                    case 3:
+                        data.out_raw_size += (alignof(T) - 1);
+                        data.out_raw_size -= (data.out_raw_size % alignof(T));
+                        offset = data.out_raw_size;
+                        data.out_raw_size += sizeof(T);
+                        break;
+                    case 5:
+                        value = *((T*)(((u8*)data.out_raw) + offset));
+                        break;
+                }
+            }
+
+        private:
+            T &value;
+            u64 offset;
     };
 
-    struct OutProcessId : RequestArgument
+    class OutProcessId : public RequestArgument
     {
-        u64 &pid;
+        public:
+            OutProcessId(u64 &out_pid);
+            virtual void Process(RequestData &data, u8 part) override;
 
-        OutProcessId(u64 &out_pid);
-        void Process(RequestData &data, u8 part) override;
-    };
-
-    template<u32 OIndex>
-    struct OutHandle : RequestArgument
-    {
-        u32 idx;
-        u32 &handle;
-
-        OutHandle(u32 &out_h) : handle(out_h), idx(OIndex)
-        {
-        }
-
-        void Process(RequestData &data, u8 part) override
-        {
-            switch(part)
-            {
-                case 4:
-                    if(idx < data.out_hs_size) handle = data.out_hs[idx];
-                    break;
-            }
-        }
+        private:
+            u64 &pid;
     };
 
     template<u32 OIndex>
-    struct OutObjectId : RequestArgument
+    class OutHandle : public RequestArgument
     {
-        u32 idx;
-        u32 &obj_id;
-
-        OutObjectId(u32 &out_obj_id) : obj_id(out_obj_id), idx(0)
-        {
-        }
-
-        void Process(RequestData &data, u8 part) override
-        {
-            switch(part)
+        public:
+            OutHandle(u32 &out_h) : handle(out_h), idx(OIndex)
             {
-                case 5:
-                    if(idx < data.out_object_ids_size) obj_id = data.out_object_ids[idx];
-                    break;
             }
-        }
+
+            virtual void Process(RequestData &data, u8 part) override
+            {
+                switch(part)
+                {
+                    case 4:
+                        if(idx < data.out_hs_size) handle = data.out_hs[idx];
+                        break;
+                }
+            }
+
+        private:
+            u32 idx;
+            u32 &handle;
+    };
+
+    template<u32 OIndex>
+    class OutObjectId : public RequestArgument
+    {
+        public:
+            OutObjectId(u32 &out_obj_id) : obj_id(out_obj_id), idx(0)
+            {
+            }
+
+            virtual void Process(RequestData &data, u8 part) override
+            {
+                switch(part)
+                {
+                    case 5:
+                        if(idx < data.out_object_ids_size) obj_id = data.out_object_ids[idx];
+                        break;
+                }
+            }
+
+        private:
+            u32 idx;
+            u32 &obj_id;
     };
 
     template<u32 OIndex, typename S>
-    struct OutSession : RequestArgument
+    class OutSession : public RequestArgument
     {
-        static_assert(std::is_base_of<Session, S>::value, "OutSession object must derive from bio::ipc::Session!");
+        static_assert(std::is_base_of<Session, S>::value, "OutSession object must inherit from bio::ipc::Session!");
 
-        u32 idx;
-        std::shared_ptr<S> &s;
-
-        OutSession(std::shared_ptr<S> &session) : s(session), idx(OIndex)
-        {
-        }
-
-        void Process(RequestData &data, u8 part) override
-        {
-            switch(part)
+        public:
+            OutSession(std::shared_ptr<S> &session) : s(session), idx(OIndex)
             {
-                case 5:
-                    if(data.requester_session_is_domain)
-                    {
-                        if(idx < data.out_object_ids_size) s = std::make_shared<S>(data.requester_session_handle, data.out_object_ids[idx]);
-                    }
-                    else
-                    {
-                        if(idx < data.out_hs_size) s = std::make_shared<S>(data.out_hs[idx]);
-                    }
-                    break;
             }
-        }
+
+            virtual void Process(RequestData &data, u8 part) override
+            {
+                switch(part)
+                {
+                    case 5:
+                        if(data.requester_session_is_domain)
+                        {
+                            if(idx < data.out_object_ids_size) s = std::make_shared<S>(data.requester_session_handle, data.out_object_ids[idx]);
+                        }
+                        else
+                        {
+                            if(idx < data.out_hs_size) s = std::make_shared<S>(data.out_hs[idx]);
+                        }
+                        break;
+                }
+            }
+
+        private:
+            u32 idx;
+            std::shared_ptr<S> &s;
     };
 
-    struct OutBuffer : RequestArgument
+    class OutBuffer : public RequestArgument
     {
-        Buffer buf;
+        public:
+            OutBuffer(const void *data, size_t size, u32 type);
+            virtual void Process(RequestData &data, u8 part) override;
 
-        OutBuffer(const void *data, size_t size, u32 type);
-        void Process(RequestData &data, u8 part) override;
+        private:
+            Buffer buf;
     };
 
-    struct OutStaticBuffer : RequestArgument
+    class OutStaticBuffer : public RequestArgument
     {
-        Buffer buf;
+        public:
+            OutStaticBuffer(const void *data, size_t size, u32 index);
+            virtual void Process(RequestData &data, u8 part) override;
 
-        OutStaticBuffer(const void *data, size_t size, u32 index);
-        void Process(RequestData &data, u8 part) override;
+        private:
+            Buffer buf;
     };
 
-    struct OutSmartBuffer : RequestArgument
+    class OutSmartBuffer : public RequestArgument
     {
-        Buffer buf_normal;
-        Buffer buf_static;
+        public:
+            OutSmartBuffer(const void *data, size_t size, u32 index, u64 expected_size);
+            virtual void Process(RequestData &data, u8 part) override;
 
-        OutSmartBuffer(const void *data, size_t size, u32 index, u64 expected_size);
-        void Process(RequestData &data, u8 part) override;
+        private:
+            Buffer buf_normal;
+            Buffer buf_static;
     };
 }

@@ -22,13 +22,6 @@ export AR_FOR_TARGET = $(AR)
 export RANLIB_FOR_TARGET = $(RANLIB)
 export CFLAGS_FOR_TARGET = $(CC_FLAGS) -Wno-unused-command-line-argument -Wno-error-implicit-function-declaration
 
-.SUFFIXES: # disable built-in rules
-.SECONDARY: # don't delete intermediate files
-
-.PHONY: default
-
-default:
-
 include mk/newlib.mk
 include mk/compiler-rt.mk
 include mk/liblzma.mk
@@ -39,10 +32,14 @@ include mk/libcxx.mk
 DIST := $(DIST_NEWLIB) $(DIST_PTHREAD) $(DIST_COMPILER_RT) $(DIST_LIBLZMA) $(DIST_OPENLIBM) $(DIST_LIBCXX) $(DIST_LIBCXXABI) $(DIST_LIBUNWIND)
 SUPPORT_HEADERS := endian.h machine/_align.h sys/_iovec.h sys/socket.h sys/_sockaddr_storage.h sys/sockio.h netinet/in.h netinet/tcp.h netdb.h arpa/inet.h net/if.h sys/features.h nl_types.h lz4.h netinet6/in6.h features.h sha256.h expected.hpp dlfcn.h poll.h
 
-dist: $(DIST)
-.PHONY: dist
+.PHONY: default precompile libbio flora fauna clean
+.DEFAULT_GOAL := default
+
+default: precompile $(DIST) libbio flora fauna
+	@echo " - Biosphere finished compiling. Run 'SetBiosphereRoot.sh' script in order to set 'BIOSPHERE_ROOT' variable to that directory (needed for development)"
 
 precompile:
+	@echo " - Starting Biosphere build..."
 	@mkdir -p $(BIOSPHERE_HOME)
 	@mkdir -p $(BIOSPHERE_HOME)/include
 	@mkdir -p $(BIOSPHERE_HOME)/include/sys
@@ -53,15 +50,28 @@ precompile:
 	@mkdir -p $(BIOSPHERE_HOME)/include/net
 	@cp -r $(CURDIR)/utils/ $(BIOSPHERE_HOME)/
 	@cp -r $(CURDIR)/compile/ $(BIOSPHERE_HOME)/
+	@mv $(BIOSPHERE_HOME)/utils/SetBiosphereRoot.sh $(BIOSPHERE_HOME)/SetBiosphereRoot.sh
 	@$(foreach header,$(SUPPORT_HEADERS),cp $(CURDIR)/include/$(header) $(BIOSPHERE_HOME)/include/$(header);)
+	@echo " - Compiling basic standard libraries... (newlib, libcxx, libcxxabi, libpthread, libunwind...)"
 
-# libbio has a different compiling system so is handled separately, and after all the basic libs
+# Custom targets for flora, fauna and libbio
 
-default: precompile $(DIST)
+flora:
+	@echo " - Compiling flora logging tool (console-side)..."
+	@$(MAKE) -C flora/
+	@mkdir -p $(BIOSPHERE_HOME)/utils/dev/flora/0100000000000721/flags
+	@touch $(BIOSPHERE_HOME)/utils/dev/flora/0100000000000721/flags/boot2.flag
+	@cp -r flora/flora.nsp $(BIOSPHERE_HOME)/utils/dev/flora/0100000000000721/exefs.nsp
+
+fauna:
+	@echo " - Compiling fauna logging tool (PC-side)..."
+	@mkdir -p $(BIOSPHERE_HOME)/utils/dev/fauna
+	@cp -r fauna/fauna/bin/Release/net461/fauna.exe $(BIOSPHERE_HOME)/utils/dev/fauna/fauna.exe
+
+libbio:
+	@echo " - Compiling Biosphere homebrew libraries (libbio)..."
 	@$(MAKE) -C libbio/
 
-clean_real:
-	rm -rf $(BIOSPHERE_HOME) $(BUILD_DIR)
-
 clean:
-	rm -rf $(BIOSPHERE_HOME)
+	@echo " - Cleaning Biosphere build..."
+	@rm -rf $(BIOSPHERE_HOME) $(BUILD_DIR)

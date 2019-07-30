@@ -1,4 +1,4 @@
-#include <bio/log/log_Logging.hpp>
+#include <biosphere>
 
 extern "C" // Declare with C linkage to avoid name mangling
 {

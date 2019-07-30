@@ -19,7 +19,7 @@
 #include <bio/env/env_HomebrewABI.hpp>
 #include <bio/os/os_Memory.hpp>
 #include <bio/os/os_Finalize.hpp>
-#include <bio/fs/fs_Types.hpp>
+#include <bio/fs/fs_FspImpl.hpp>
 
 extern "C"
 {

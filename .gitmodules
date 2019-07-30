@@ -16,3 +16,6 @@
 [submodule "openlibm"]
 	path = openlibm
 	url = https://github.com/JuliaMath/openlibm.git
+[submodule "flora/libstratosphere"]
+	path = flora/libstratosphere
+	url = https://github.com/Atmosphere-NX/libstratosphere

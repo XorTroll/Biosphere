@@ -1,5 +1,21 @@
 build/
-dist/
+build.nso/
+build.nro/
+build.libnro/
+.vscode/
+.vs/
+bin/
+obj/
+Biosphere/
+
+*.a
+*.elf
+*.npdm
+*.nro
+*.nrs
+*.nso
+*.nss
+*.nsp
 *~
 
 # Automake cache files

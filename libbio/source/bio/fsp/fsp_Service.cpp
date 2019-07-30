@@ -105,7 +105,7 @@ namespace bio::fsp
 
     Result FileSystem::Commit()
     {
-        return ProcessRequest<10>(ipc::Simple());
+        return ProcessRequest<10>();
     }
 
     Result FileSystem::GetFreeSpaceSize(const char *path, Out<u64> size)

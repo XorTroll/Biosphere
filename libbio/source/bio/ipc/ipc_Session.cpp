@@ -62,14 +62,7 @@ namespace bio::ipc
                 iraw->pad[0] = iraw->pad[1] = 0;
                 svc::SendSyncRequest(handle);
             }
-            else
-            {
-                u32 *tls = (u32*)os::GetTLS();
-                tls[0] = 2;
-                tls[1] = 0;
-                svc::SendSyncRequest(handle);
-                svc::CloseHandle(handle);
-            }
+            else CloseSessionHandle(handle);
         }
         type = SessionType::Invalid;
         object_id = UINT32_MAX;
