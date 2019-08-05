@@ -25,8 +25,7 @@ __bio_crt0_ExecutableFormat:
 .section .text, "x"
 .global start
 start:
-	mov w0, #0xd4dd // LIBTRANSISTOR_ERR_TRNLD_NOT_EXECUTABLE ... change this
-	movk w0, #0x5d, lsl #16
+	mov w0, #0x3A4 // bio::ResultNroLibraryNotExecutable
 	ret
 
 .section .bss

@@ -1,5 +1,4 @@
 #include <bio/ipc/ipc_Types.hpp>
-#include <bio/os/os_TLS.hpp>
 #include <cstdlib>
 
 namespace bio::ipc

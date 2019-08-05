@@ -2,6 +2,7 @@
 #pragma once
 
 #include <bio/bio_Types.hpp>
+#include <bio/bio_Results.hpp>
 #include <bio/env/env_HomebrewABI.hpp>
 #include <bio/err/err_Assertion.hpp>
 #include <bio/fatal/fatal_Service.hpp>

@@ -13,7 +13,7 @@ int main()
 
     {
         // bio::ld::Module is a wrapper for dlopen/dlsym/dlclose
-        auto [res, module] = ld::LoadModule("sdcard:/demo.lib.nro", false);
+        auto [res, module] = ld::LoadModule("sdcard:/switch/demo.lib.nro", false);
 
         if(res.IsSuccess())
         {

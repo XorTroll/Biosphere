@@ -3,14 +3,15 @@
 #include <bio/flora/flora_Service.hpp>
 #include <cstring>
 #include <algorithm>
+#include <string>
 
-bio::log::LogWriteFunction global_StdoutLog = bio::log::SvcStdoutLoggingFunction;
-bio::log::LogWriteFunction global_StderrLog = bio::log::SvcStderrLoggingFunction;
+bio::log::LogWriteFunction global_StdoutLog = bio::log::FloraStdoutLoggingFunction;
+bio::log::LogWriteFunction global_StderrLog = bio::log::FloraStderrLoggingFunction;
 
 namespace bio::log
 {
     static std::shared_ptr<flora::Service> _inner_FloraSession;
-    static bool _inner_Initialized = false;
+    static bool _inner_FloraInitialized = false;
 
     void SetStdoutLoggingFunction(LogWriteFunction func)
     {
@@ -22,34 +23,32 @@ namespace bio::log
         global_StderrLog = func;
     }
 
+    #define SVC_LOG_STD(type, ptr, sz) do { \
+        svc::OutputDebugString((char*)ptr, sz); \
+        } while(0)
+
     void SvcStdoutLoggingFunction(const void *ptr, size_t sz)
     {
-        char *log = new char[sz + 0x20]();
-        sprintf(log, "(stdout) %s", (char*)ptr);
-        svc::OutputDebugString(log, sz + 0x20);
-        delete[] log;
+        SVC_LOG_STD(stdout, ptr, sz);
     }
 
     void SvcStderrLoggingFunction(const void *ptr, size_t sz)
     {
-        char *log = new char[sz + 0x20]();
-        sprintf(log, "(stderr) %s", (char*)ptr);
-        svc::OutputDebugString(log, sz + 0x20);
-        delete[] log;
+        SVC_LOG_STD(stderr, ptr, sz);
     }
 
     static bool _inner_EnsureFloraIsInitialized()
     {
-        if(!_inner_Initialized)
+        if(!_inner_FloraInitialized)
         {
             auto [res, flora] = flora::Service::Initialize();
             if(res.IsSuccess())
             {
                 _inner_FloraSession = std::move(flora);
-                _inner_Initialized = true;
+                _inner_FloraInitialized = true;
             }
         }
-        return _inner_Initialized;
+        return _inner_FloraInitialized;
     }
 
     void FloraStdoutLoggingFunction(const void *ptr, size_t sz)

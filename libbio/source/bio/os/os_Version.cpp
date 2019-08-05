@@ -25,7 +25,7 @@ namespace bio::os
         } ver = {}; // Wrapper until setsys is properly implemented
         
         setsys.ProcessRequest<3>(ipc::OutStaticBuffer(&ver, sizeof(ver), 0));
-        BIO_LOG("Version display title: %s", ver.display_title);
+        BIO_DEBUG_LOG("Version display title: %s", ver.display_title);
 
         v.major = ver.major;
         v.minor = ver.minor;

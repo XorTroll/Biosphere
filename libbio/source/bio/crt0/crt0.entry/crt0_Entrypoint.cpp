@@ -150,7 +150,7 @@ void __bio_crt0_ProcessArgv(void *argv_ptr)
 
 		if(__bio_crt0_ExecutableFormat == 1)
 		{
-			// Check NRO romfs here (see bwlow)
+			// Check NRO romfs here (see below)
 			char *filename = global_Argv[0]; // Path sent by hbloader via argv
 			if(strncmp("sdmc:/", filename, 6) == 0)
 			{
@@ -247,6 +247,14 @@ Execution:
 
 */
 
+// newlib stuff which needs to be initialized
+static void __bio_crt0_PrepareNewlib()
+{
+	// stdout/err buffering
+	setvbuf(stdout, NULL, _IONBF, 0);
+	setvbuf(stderr, NULL, _IONBF, 0);
+}
+
 void BIO_WEAK __bio_crt0_Startup(void *config, bio::u64 thread_handle, void *aslr)
 {
 	bio::u8 *mod_base = (bio::u8*)aslr;
@@ -255,10 +263,10 @@ void BIO_WEAK __bio_crt0_Startup(void *config, bio::u64 thread_handle, void *asl
 	Elf64_Dyn *dynamic = (Elf64_Dyn*) (((uint8_t*)module) + module->dynamic);
 
     __bio_crt0_Relocate(mod_base, dynamic);
+	__bio_crt0_PrepareNewlib();
 
-    if(__bio_crt0_ExecutableFormat == 0) BIO_LOG("%s", "NSO");
-	else if(__bio_crt0_ExecutableFormat == 1) BIO_LOG("%s", "NRO");
-	else if(__bio_crt0_ExecutableFormat == 2) BIO_LOG("%s", "libNRO");
+    if(__bio_crt0_ExecutableFormat == 0) BIO_DEBUG_LOG("%s", "Binary format: NSO");
+	else if(__bio_crt0_ExecutableFormat == 1) BIO_DEBUG_LOG("%s", "Binary format: NRO");
 
 	void *argv = NULL;
 

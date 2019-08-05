@@ -13,7 +13,6 @@ namespace bio::fs
     static std::vector<std::shared_ptr<Device>> _inner_DeviceList;
     static std::vector<std::shared_ptr<DeviceFile>> _inner_FileList;
     static bool _inner_Initialized = false;
-    static bool _inner_StdoutInitialized = false;
 
     struct _inner_ProcessedPathBlock
     {

@@ -4,19 +4,20 @@ using namespace bio;
 #include <fstream>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 
 int main(int argc, char **argv)
 {
-    fs::Initialize();
-    fs::MountSdCard("sdcard");
+    fs::Initialize().Assert();
+    fs::MountSdCard("sd").Assert();
 
-    FILE *f = fopen("sdcard:/out-demo.txt", "w");
+    auto f = fopen("sd:/demo-newipc2.txt", "a");
     if(f)
     {
-        fprintf(f, "%s %s!", "This is", "Biosphere");
+        fprintf(f, "%s %s!", "Biosphere", "rules");
         fclose(f);
     }
-
+    
     fs::Finalize();
 
     return 0;

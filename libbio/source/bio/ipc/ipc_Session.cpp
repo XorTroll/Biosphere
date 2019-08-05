@@ -130,58 +130,15 @@ namespace bio::ipc
             tls[7] = 0;
             rc = svc::SendSyncRequest(handle);
             if(rc.IsFailure()) return rc;
-            u32 ctrl0 = *tls++;
-            u32 ctrl1 = *tls++;
-            bool gotpid = false;
-            u64 outpid = 0;
-            std::vector<u32> outhdls;
-            if(ctrl1 & 0x80000000)
-            {
-                u32 ctrl2 = *tls++;
-                if(ctrl2 & 1)
-                {
-                    gotpid = true;
-                    u64 opid = *tls++;
-                    opid |= (((u64)(*tls++)) << 32);
-                    outpid = opid;
-                }
-                size_t shcopy = ((ctrl2 >> 1) & 15);
-                size_t shmove = ((ctrl2 >> 5) & 15);
-                size_t sh = shcopy + shmove;
-                u32 *ashbuf = tls + sh;
-                if(sh > 8) sh = 8;
-                outhdls.reserve(sh);
-                if(sh > 0) for(u32 i = 0; i < sh; i++) outhdls.push_back((u32)(*(tls + i)));
-                tls = ashbuf;
-            }
-            size_t s_st = ((ctrl0 >> 16) & 15);
-            u32 *abst = (tls + s_st * 2);
-            if(s_st > 8) s_st = 8;
-            for(u32 i = 0; i < s_st; i++, tls += 2)
-            {
-                BufferSendData *bsd = (BufferSendData*)tls;
-                BIO_IGNORE(bsd);
-            }
-            tls = abst;
-            size_t sends = ((ctrl0 >> 20) & 15);
-            size_t recvs = ((ctrl0 >> 24) & 15);
-            size_t exchs = ((ctrl0 >> 28) & 15);
-            size_t bufs = (sends + recvs + exchs);
-            void *outraw = (void*)(((uintptr_t)(tls + bufs * 3) + 15) &~ 15);
-            void *wpadraw = (void*)((uintptr_t)(tls + bufs * 3));
-            BIO_IGNORE(wpadraw);
-            if(bufs > 8) bufs = 8;
-            for(u32 i = 0; i < bufs; i++, tls += 3)
-            {
-                BufferCommandData *bcd = (BufferCommandData*)tls;
-                BIO_IGNORE(bcd);
-            }
+            RequestData rq = {};
+            rq.requester_session_is_domain = false;
+            ProcessResponse(rq);
             struct ConvertRaw
             {
                 u64 magic;
                 u64 res;
                 u32 oid;
-            } *oraw = (ConvertRaw*)outraw;
+            } *oraw = (ConvertRaw*)rq.out_raw;
             rc = oraw->res;
             if(rc.IsSuccess())
             {
@@ -206,58 +163,15 @@ namespace bio::ipc
         tls[7] = 0;
         rc = svc::SendSyncRequest(handle);
         if(rc.IsFailure()) return rc;
-        u32 ctrl0 = *tls++;
-        u32 ctrl1 = *tls++;
-        bool gotpid = false;
-        u64 outpid = 0;
-        std::vector<u32> outhdls;
-        if(ctrl1 & 0x80000000)
-        {
-            u32 ctrl2 = *tls++;
-            if(ctrl2 & 1)
-            {
-                gotpid = true;
-                u64 opid = *tls++;
-                opid |= (((u64)(*tls++)) << 32);
-                outpid = opid;
-            }
-            size_t shcopy = ((ctrl2 >> 1) & 15);
-            size_t shmove = ((ctrl2 >> 5) & 15);
-            size_t sh = shcopy + shmove;
-            u32 *ashbuf = tls + sh;
-            if(sh > 8) sh = 8;
-            outhdls.reserve(sh);
-            if(sh > 0) for(u32 i = 0; i < sh; i++) outhdls.push_back((u32)(*(tls + i)));
-            tls = ashbuf;
-        }
-        size_t s_st = ((ctrl0 >> 16) & 15);
-        u32 *abst = (tls + s_st * 2);
-        if(s_st > 8) s_st = 8;
-        for(u32 i = 0; i < s_st; i++, tls += 2)
-        {
-            BufferSendData *bsd = (BufferSendData*)tls;
-            BIO_IGNORE(bsd);
-        }
-        tls = abst;
-        size_t sends = ((ctrl0 >> 20) & 15);
-        size_t recvs = ((ctrl0 >> 24) & 15);
-        size_t exchs = ((ctrl0 >> 28) & 15);
-        size_t bufs = (sends + recvs + exchs);
-        void *outraw = (void*)(((uintptr_t)(tls + bufs * 3) + 15) &~ 15);
-        void *wpadraw = (void*)((uintptr_t)(tls + bufs * 3));
-        BIO_IGNORE(wpadraw);
-        if(bufs > 8) bufs = 8;
-        for(u32 i = 0; i < bufs; i++, tls += 3)
-        {
-            BufferCommandData *bcd = (BufferCommandData*)tls;
-            BIO_IGNORE(bcd);
-        }
+        RequestData rq = {};
+        rq.requester_session_is_domain = false;
+        ProcessResponse(rq);
         struct QueryRaw
         {
             u64 magic;
             u64 res;
             u32 size;
-        } *oraw = (QueryRaw*)outraw;
+        } *oraw = (QueryRaw*)rq.out_raw;
         rc = oraw->res;
         if(rc.IsSuccess()) (size_t&)size = (size_t)(oraw->size & 0xffff);
         return rc;

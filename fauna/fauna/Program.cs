@@ -75,7 +75,6 @@ namespace fauna
         public static string NetReadString(NetworkStream strm)
         {
             var len = NetRead32(strm);
-            Console.WriteLine("Read size: " + len);
             var buf = new byte[len];
             strm.Read(buf, 0, (int)len);
             return Encoding.UTF8.GetString(buf).Trim('\0');
@@ -125,7 +124,6 @@ namespace fauna
         {
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine(Msg);
-            Console.WriteLine();
         }
 
         public static void Log(ulong AppId, string Msg, string FileName, string FuncName, uint LineNo)
@@ -198,6 +196,7 @@ namespace fauna
 
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Connection established.");
+                Console.ForegroundColor = ConsoleColor.Gray;
                 Console.WriteLine();
 
                 while(true) HandleSentLogData();
