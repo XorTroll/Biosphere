@@ -26,6 +26,7 @@ namespace bio::svc
 
     Result CloseHandle(u32 handle);
     Result CreateEvent(Out<u32> w_end, Out<u32> r_end);
+    Result ClearEvent(u32 handle);
     Result ResetSignal(u32 signal);
     Result WaitSynchronization(Out<u32> handle_index, u32 *handles, u32 num_handles, u64 timeout);
     Result SignalEvent(u32 event);
@@ -51,4 +52,5 @@ namespace bio::svc
     Result GetThreadPriority(u32 handle, Out<u32> priority);
     Result CreateThread(void *entrypoint, void *arg, void *stack, i32 priority, i32 cpuid, Out<u32> handle);
     Result StartThread(u32 handle);
+    u64 GetSystemTick();
 }

@@ -58,12 +58,17 @@ namespace bio::ipc
         }
     }
 
-    InSmartBuffer::InSmartBuffer(const void *data, size_t size, u32 index, u64 expected_size) : buf_normal({ { BufferMode::Normal, 0, 0, 0 }, data, size }), buf_static({ { BufferMode::Static, 0, index, 0 }, NULL, 0 })
+    InSmartBuffer::InSmartBuffer(const void *data, size_t size, u32 index, u64 expected_size)
     {
         if((expected_size != 0) && (size <= expected_size))
         {
             buf_normal = { { BufferMode::Normal, 0, 0, 0 }, NULL, 0 };
             buf_static = { { BufferMode::Static, 0, index, 0 }, data, size };
+        }
+        else
+        {
+            buf_normal = { { BufferMode::Normal, 0, 0, 0 }, data, size };
+            buf_static = { { BufferMode::Static, 0, index, 0 }, NULL, 0 };
         }
     }
 

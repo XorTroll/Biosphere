@@ -6,6 +6,16 @@
 
 namespace bio::ipc
 {
+    #define BIO_IPC_PROCESS_TYPE_RAW(type, var) var += (alignof(type) - 1); \
+        var -= (var % alignof(type)); \
+        var += sizeof(type);
+
+    #define BIO_IPC_PROCESS_TYPE_RAW_OUT(type, var, out) var += (alignof(type) - 1); \
+        var -= (var % alignof(type)); \
+        out = var; \
+        var += sizeof(type);
+
+
     enum class SessionType
     {
         Invalid,
@@ -287,7 +297,7 @@ namespace bio::ipc
             }
             ovraw = (void*)(((uintptr_t)ovraw) + sizeof(DomainResponse));
         }
-        data.out_raw = (u8*)ovraw;
+        data.out_raw = ovraw;
     }
 
     void CloseSessionHandle(u32 handle);

@@ -130,19 +130,18 @@ namespace bio::ipc
             tls[7] = 0;
             rc = svc::SendSyncRequest(handle);
             if(rc.IsFailure()) return rc;
+        
             RequestData rq = {};
             rq.requester_session_is_domain = false;
+            BIO_IPC_PROCESS_TYPE_RAW(u64, rq.out_raw_size)
+            BIO_IPC_PROCESS_TYPE_RAW_OUT(u64, rq.out_raw_size, u64 offcmdres)
+            BIO_IPC_PROCESS_TYPE_RAW_OUT(u32, rq.out_raw_size, u64 offobjid)
             ProcessResponse(rq);
-            struct ConvertRaw
-            {
-                u64 magic;
-                u64 res;
-                u32 oid;
-            } *oraw = (ConvertRaw*)rq.out_raw;
-            rc = oraw->res;
+
+            rc = (u32)*((u64*)(((u8*)rq.out_raw) + offcmdres));
             if(rc.IsSuccess())
             {
-                object_id = oraw->oid;
+                object_id = *((u32*)(((u8*)rq.out_raw) + offobjid));
                 type = SessionType::Domain;
             }
         }
@@ -151,7 +150,6 @@ namespace bio::ipc
 
     Result Session::QueryPointerBufferSize(Out<size_t> size)
     {
-        Result rc = 0;
         u32 *tls = (u32*)os::GetTLS();
         tls[0] = 5;
         tls[1] = 8;
@@ -161,19 +159,18 @@ namespace bio::ipc
         tls[5] = 0;
         tls[6] = 3;
         tls[7] = 0;
-        rc = svc::SendSyncRequest(handle);
+        auto rc = svc::SendSyncRequest(handle);
         if(rc.IsFailure()) return rc;
+
         RequestData rq = {};
         rq.requester_session_is_domain = false;
+        BIO_IPC_PROCESS_TYPE_RAW(u64, rq.out_raw_size)
+        BIO_IPC_PROCESS_TYPE_RAW_OUT(u64, rq.out_raw_size, u64 offcmdres)
+        BIO_IPC_PROCESS_TYPE_RAW_OUT(u32, rq.out_raw_size, u64 offsize)
         ProcessResponse(rq);
-        struct QueryRaw
-        {
-            u64 magic;
-            u64 res;
-            u32 size;
-        } *oraw = (QueryRaw*)rq.out_raw;
-        rc = oraw->res;
-        if(rc.IsSuccess()) (size_t&)size = (size_t)(oraw->size & 0xffff);
+
+        rc = (u32)*((u64*)(((u8*)rq.out_raw) + offcmdres));
+        if(rc.IsSuccess()) (size_t&)size = (size_t)(*((u32*)(((u8*)rq.out_raw) + offsize)) & 0xffff);
         return rc;
     }
 
@@ -192,5 +189,19 @@ namespace bio::ipc
     Result ServiceSession::GetInitialResult()
     {
         return initial_res;
+    }
+
+    ResultWith<std::shared_ptr<ServiceSession>> ServiceSession::Create(const char *name)
+    {
+        auto srv = std::make_shared<ServiceSession>(name);
+        return MakeResultWith(srv->GetInitialResult(), std::move(srv));
+    }
+
+    ResultWith<std::shared_ptr<ServiceSession>> ServiceSession::CreateDomain(const char *name)
+    {
+        auto srv = std::make_shared<ServiceSession>(name);
+        auto res = srv->GetInitialResult();
+        if(res.IsSuccess()) res = srv->ConvertToDomain();
+        return MakeResultWith(res, std::move(srv));
     }
 }

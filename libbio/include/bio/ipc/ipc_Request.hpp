@@ -1,6 +1,7 @@
 
 #pragma once
 #include <bio/ipc/ipc_Session.hpp>
+#include <bio/os/os_Event.hpp>
 
 namespace bio::ipc
 {
@@ -17,10 +18,7 @@ namespace bio::ipc
                 switch(part)
                 {
                     case 0:
-                        data.in_raw_size += (alignof(T) - 1);
-                        data.in_raw_size -= (data.in_raw_size % alignof(T));
-                        offset = data.in_raw_size;
-                        data.in_raw_size += sizeof(T);
+                        BIO_IPC_PROCESS_TYPE_RAW_OUT(T, data.in_raw_size, offset)
                         break;
                     case 2:
                         *((T*)(((u8*)data.in_raw) + offset)) = value;
@@ -154,10 +152,7 @@ namespace bio::ipc
                 switch(part)
                 {
                     case 3:
-                        data.out_raw_size += (alignof(T) - 1);
-                        data.out_raw_size -= (data.out_raw_size % alignof(T));
-                        offset = data.out_raw_size;
-                        data.out_raw_size += sizeof(T);
+                        BIO_IPC_PROCESS_TYPE_RAW_OUT(T, data.out_raw_size, offset)
                         break;
                     case 5:
                         value = *((T*)(((u8*)data.out_raw) + offset));
@@ -201,6 +196,34 @@ namespace bio::ipc
         private:
             u32 idx;
             u32 &handle;
+    };
+
+    template<u32 OIndex, bool AutoClear>
+    class OutEvent : public RequestArgument
+    {
+        public:
+            OutEvent(std::shared_ptr<os::Event> &out_ev) : event(out_ev), idx(OIndex), auto_cl(AutoClear)
+            {
+            }
+
+            virtual void Process(RequestData &data, u8 part) override
+            {
+                switch(part)
+                {
+                    case 4:
+                        if(idx < data.out_hs_size)
+                        {
+                            u32 handle = data.out_hs[idx];
+                            event = std::move(os::Event::Open(handle, auto_cl));
+                        }
+                        break;
+                }
+            }
+
+        private:
+            u32 idx;
+            bool auto_cl;
+            std::shared_ptr<os::Event> &event;
     };
 
     template<u32 OIndex>

@@ -1,21 +1,6 @@
 #include <biosphere>
 using namespace bio;
 
-#include <fstream>
-#include <cstdio>
-#include <cstring>
-#include <iostream>
-
-extern "C"
-{
-    u64 __bio_svc_GetSystemTick();
-}
-
-u64 __bio_crt0_GetHeapSize()
-{
-    return 0x10000000; // Allow other applets to boot!
-}
-
 Result aeTest()
 {
     auto [res, ae] = ipc::ServiceSession::CreateDomain("appletAE"); // Gets service and calls ConvertToDomain()
@@ -50,7 +35,7 @@ Result aeTest()
     memset(&args, 0, sizeof(args));
     args.version = 1;
     args.size = sizeof(CommonArgs);
-    args.tick = __bio_svc_GetSystemTick();
+    args.tick = svc::GetSystemTick();
 
     std::shared_ptr<ipc::Session> ae_storage_common;
     // ILibraryAppletCreator->CreateStorage
@@ -66,7 +51,7 @@ Result aeTest()
 
     u64 bufsize = 0;
     BIO_TRY(ae_storage_common_accessor->QueryPointerBufferSize(bufsize));
-    printf("Pointer buffer size: 0x%llX", bufsize);
+    printf("Pointer buffer size: 0x%lX", bufsize);
     // IStorageAccessor->Write
     BIO_TRY(ae_storage_common_accessor->ProcessRequest<10>(ipc::InRaw<i64>(0), ipc::InSmartBuffer(&args, sizeof(CommonArgs), 0, bufsize)));
 
@@ -99,7 +84,7 @@ Result aeTest()
     printf("Open accessor...");
 
     BIO_TRY(ae_storage_data_accessor->QueryPointerBufferSize(bufsize));
-    printf("Pointer buffer size [2]: 0x%llX", bufsize);
+    printf("Pointer buffer size [2]: 0x%lX", bufsize);
     // IStorageAccessor->Write
     BIO_TRY(ae_storage_data_accessor->ProcessRequest<10>(ipc::InRaw<i64>(0), ipc::InSmartBuffer(data, datasize, 0, bufsize)));
 
@@ -133,7 +118,9 @@ int main(int argc, char **argv)
     auto res = aeTest();
     if(res.IsFailure())
     {
-        err::FatalAssertionFunction(res); // Will fatal with the error
+        printf("Test failed: 0x%X", (u32)res); // Explicit Result -> u32 conversion
+        err::FatalAssertionFunction(res); // After printing, fatal with the error
     }
+    else printf("Test succeeded!");
     return 0;
 }

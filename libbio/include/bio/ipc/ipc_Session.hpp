@@ -84,6 +84,9 @@ namespace bio::ipc
             ServiceSession(const char *name);
             const char *GetServiceName();
             Result GetInitialResult();
+
+            static ResultWith<std::shared_ptr<ServiceSession>> Create(const char *name);
+            static ResultWith<std::shared_ptr<ServiceSession>> CreateDomain(const char *name);
         private:
             Result initial_res;
             char srv_name[0x10];

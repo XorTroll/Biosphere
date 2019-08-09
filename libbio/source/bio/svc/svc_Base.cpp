@@ -113,6 +113,11 @@ namespace bio::svc
     {
         return __bio_svc_CreateEvent(w_end.AsPtr(), r_end.AsPtr());
     }
+
+    Result ClearEvent(u32 handle)
+    {
+        return __bio_svc_ClearEvent(handle);
+    }
     
     Result ResetSignal(u32 signal)
     {
@@ -237,5 +242,10 @@ namespace bio::svc
     Result StartThread(u32 handle)
     {
         return __bio_svc_StartThread(handle);
+    }
+
+    u64 GetSystemTick()
+    {
+        return __bio_svc_GetSystemTick();
     }
 }
