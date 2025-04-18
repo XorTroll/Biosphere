@@ -2,9 +2,9 @@
 
 > Bringing life to Nintendo Switch homebrew!
 
-Biosphere (previously a devkitA64 homebrew library) is a homebrew toolchain / development kit using LLVM and clang.
+## **IMPORTANT!** this project is no longer continued.
 
-**IMPORTANT!** use this at your own risk (see state below), since the libraries are still under development.
+Biosphere (previously a devkitA64 homebrew library) is a homebrew toolchain / development kit using LLVM and clang.
 
 ## WIP status (TODO)
 
